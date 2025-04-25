@@ -1,5 +1,6 @@
 # dependencies
 /node_modules
+node_modules/
 
 # production build
 /dist
@@ -8,6 +9,9 @@
 .env
 .env.local
 env/
+venv/
+.venv
+.venv.local
 
 # logs
 npm-debug.log*
