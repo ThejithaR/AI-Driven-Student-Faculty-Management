@@ -19,10 +19,10 @@ def schedule_exam(exam: ExamCreateRequest):
         start_time=exam.start_time,
         end_time=exam.end_time
     )
-
+    print(clash)
     if clash:
         raise HTTPException(status_code=400, detail="Exam clash detected! Group already has an exam at that time.")
-
+    
     data = exam.dict()
     create_exam(data)
 
