@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Facial Recognition Attendance System</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        h1, h2, h3 {
+            color: #2c3e50;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .tabs {
+            display: flex;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #ddd;
+        }
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            font-weight: bold;
+            background: #eee;
+            border-radius: 5px 5px 0 0;
+            margin-right: 5px;
+        }
+        .tab.active {
+            background: #4CAF50;
+            color: white;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .video-container {
+            position: relative;
+            margin-bottom: 20px;
+            background: #000;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        #video {
+            width: 100%;
+            max-width: 640px;
+            display: block;
+            margin: 0 auto;
+        }
+        #canvas {
+            display: none;
+        }
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin: 20px 0;
+        }
+        button {
+            padding: 10px 15px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background 0.3s;
+        }
+        button:hover {
+            background: #3e8e41;
+        }
+        button:disabled {
+            background: #cccccc;
+            cursor: not-allowed;
+        }
+        .result-container {
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background: #f9f9f9;
+        }
+        .student-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        .student-card {
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 15px;
+            background: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        .student-card.recognized {
+            border-left: 5px solid #4CAF50;
+        }
+        .student-card.unknown {
+            border-left: 5px solid #f44336;
+        }
+        .attendance-status {
+            font-weight: bold;
+            padding: 3px 8px;
+            border-radius: 3px;
+            display: inline-block;
+            margin-top: 5px;
+        }
+        .status-taken {
+            background: #c8e6c9;
+            color: #2e7d32;
+        }
+        .status-already {
+            background: #ffe0b2;
+            color: #e65100;
+        }
+        .status-unknown {
+            background: #ffcdd2;
+            color: #c62828;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        .face-container {
+            position: relative;
+            width: 320px;
+            height: 240px;
+            margin: 0 auto;
+            overflow: hidden;
+            background: #f5f5f5;
+            border-radius: 5px;
+        }
+        #register-video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        #register-canvas {
+            display: none;
+        }
+        .face-with-box {
+            position: relative;
+            width: 100%;
+            max-width: 640px;
+            margin: 10px auto;
+        }
+        .face-box {
+            position: absolute;
+            border: 3px solid;
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+        }
+        .face-label {
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 2px 5px;
+            font-size: 12px;
+            max-width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .loading {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            display: none;
+        }
+        .loader {
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #4CAF50;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .location-input {
+            margin: 20px 0;
+            width: 100%;
+            max-width: 300px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        #log-container {
+            padding: 10px;
+            background: #f0f0f0;
+            border-radius: 5px;
+            margin-top: 20px;
+            height: 150px;
+            overflow-y: auto;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+        .log-entry {
+            margin: 5px 0;
+            padding: 5px;
+            border-left: 3px solid #4CAF50;
+        }
+        #realtime-switch {
+            margin: 20px 0;
+        }
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+            vertical-align: middle;
+        }
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 34px;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        input:checked + .slider {
+            background-color: #4CAF50;
+        }
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+        .switch-label {
+            margin-left: 10px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Facial Recognition Attendance System</h1>
+        
+        <div class="tabs">
+            <div class="tab active" data-tab="attendance">Take Attendance</div>
+            <div class="tab" data-tab="register">Register Face</div>
+        </div>
+        
+        <div id="attendance" class="tab-content active">
+            <h2>Take Attendance</h2>
+            
+            <div class="video-container">
+                <video id="video" autoplay playsinline></video>
+                <canvas id="canvas"></canvas>
+            </div>
+            
+            <div id="realtime-switch">
+                <label class="switch">
+                    <input type="checkbox" id="toggle-realtime">
+                    <span class="slider"></span>
+                </label>
+                <span class="switch-label">Real-time Recognition</span>
+            </div>
+            
+            <input type="text" id="location" class="location-input" placeholder="Enter location (optional)">
+            
+            <div class="controls">
+                <button id="start-camera">Start Camera</button>
+                <button id="capture" disabled>Capture & Recognize</button>
+                <button id="stop-camera" disabled>Stop Camera</button>
+            </div>
+            
+            <div class="result-container">
+                <h3>Recognition Results</h3>
+                <div id="results-message"></div>
+                
+                <div class="face-with-box" id="captured-image-container" style="display: none;">
+                    <img id="captured-image" style="width: 100%;">
+                    <div id="face-boxes"></div>
+                </div>
+                
+                <div class="student-list" id="recognized-students"></div>
+            </div>
+            
+            <div>
+                <h3>Activity Log</h3>
+                <div id="log-container"></div>
+            </div>
+        </div>
+        
+        <div id="register" class="tab-content">
+            <h2>Register Student Face</h2>
+            
+            <div class="form-group">
+                <label for="reg-number">Registration Number:</label>
+                <input type="text" id="reg-number" placeholder="Enter student registration number">
+            </div>
+            
+            <div class="face-container">
+                <video id="register-video" autoplay playsinline></video>
+                <canvas id="register-canvas"></canvas>
+            </div>
+            
+            <div class="controls">
+                <button id="register-start-camera">Start Camera</button>
+                <button id="register-capture" disabled>Capture Photo</button>
+                <button id="register-submit" disabled>Register Face</button>
+                <button id="register-stop-camera" disabled>Stop Camera</button>
+            </div>
+            
+            <div class="result-container">
+                <div id="register-result"></div>
+                <img id="register-preview" style="display: none; max-width: 320px; margin-top: 15px;">
+            </div>
+        </div>
+    </div>
+    
+    <div class="loading" id="loading">
+        <div class="loader"></div>
+    </div>
+
+    <script>
+        // Global variables
+        let videoStream = null;
+        let registerVideoStream = null;
+        let capturedImage = null;
+        let realtimeRecognitionActive = false;
+        let realtimeTimer = null;
+        
+        // DOM Elements
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const startCameraBtn = document.getElementById('start-camera');
+        const captureBtn = document.getElementById('capture');
+        const stopCameraBtn = document.getElementById('stop-camera');
+        const resultsMessage = document.getElementById('results-message');
+        const recognizedStudents = document.getElementById('recognized-students');
+        const capturedImageEl = document.getElementById('captured-image');
+        const capturedImageContainer = document.getElementById('captured-image-container');
+        const faceBoxesContainer = document.getElementById('face-boxes');
+        const registerVideo = document.getElementById('register-video');
+        const registerCanvas = document.getElementById('register-canvas');
+        const registerStartCameraBtn = document.getElementById('register-start-camera');
+        const registerCaptureBtn = document.getElementById('register-capture');
+        const registerSubmitBtn = document.getElementById('register-submit');
+        const registerStopCameraBtn = document.getElementById('register-stop-camera');
+        const registerResult = document.getElementById('register-result');
+        const registerPreview = document.getElementById('register-preview');
+        const regNumberInput = document.getElementById('reg-number');
+        const loadingIndicator = document.getElementById('loading');
+        const locationInput = document.getElementById('location');
+        const logContainer = document.getElementById('log-container');
+        const realtimeToggle = document.getElementById('toggle-realtime');
+        
+        // Tab switching
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                // Deactivate all tabs and content
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                
+                // Activate clicked tab and corresponding content
+                tab.classList.add('active');
+                document.getElementById(tab.dataset.tab).classList.add('active');
+                
+                // Stop any active camera streams when switching tabs
+                stopCamera();
+                stopRegisterCamera();
+            });
+        });
+        
+        // Start camera on attendance tab
+        startCameraBtn.addEventListener('click', startCamera);
+        stopCameraBtn.addEventListener('click', stopCamera);
+        captureBtn.addEventListener('click', captureAndRecognize);
+        
+        // Register tab functionality
+        registerStartCameraBtn.addEventListener('click', startRegisterCamera);
+        registerStopCameraBtn.addEventListener('click', stopRegisterCamera);
+        registerCaptureBtn.addEventListener('click', captureRegisterPhoto);
+        registerSubmitBtn.addEventListener('click', submitFaceRegistration);
+        
+        // Realtime recognition toggle
+        realtimeToggle.addEventListener('change', toggleRealtimeRecognition);
+        
+        // Function to start the camera for attendance
+        async function startCamera() {
+            try {
+                videoStream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { 
+                        width: { ideal: 640 },
+                        height: { ideal: 480 },
+                        facingMode: 'user'
+                    } 
+                });
+                video.srcObject = videoStream;
+                
+                startCameraBtn.disabled = true;
+                captureBtn.disabled = false;
+                stopCameraBtn.disabled = false;
+                
+                log('Camera started successfully');
+            } catch (error) {
+                log('Error starting camera: ' + error.message);
+                alert('Error accessing camera: ' + error.message);
+            }
+        }
+        
+        // Function to stop the camera for attendance
+        function stopCamera() {
+            if (videoStream) {
+                videoStream.getTracks().forEach(track => track.stop());
+                video.srcObject = null;
+                videoStream = null;
+                
+                startCameraBtn.disabled = false;
+                captureBtn.disabled = true;
+                stopCameraBtn.disabled = true;
+                
+                // Also stop real-time recognition if active
+                if (realtimeRecognitionActive) {
+                    realtimeToggle.checked = false;
+                    toggleRealtimeRecognition();
+                }
+                
+                log('Camera stopped');
+            }
+        }
+        
+        // Function to capture image and recognize faces
+        async function captureAndRecognize() {
+            if (!videoStream) return;
+            
+            // Draw current video frame to canvas
+            const ctx = canvas.getContext('2d');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            
+            // Convert canvas to base64 image
+            const imageData = canvas.toDataURL('image/jpeg');
+            capturedImage = imageData;
+            
+            // Display the captured image
+            capturedImageEl.src = imageData;
+            capturedImageContainer.style.display = 'block';
+            
+            // Clear previous results
+            resultsMessage.textContent = 'Processing...';
+            recognizedStudents.innerHTML = '';
+            faceBoxesContainer.innerHTML = '';
+            
+            // Send to recognition API
+            await recognizeFaces(imageData);
+        }
+        
+        // Function to recognize faces
+        async function recognizeFaces(imageData) {
+            try {
+                showLoading(true);
+                
+                const location = locationInput.value.trim();
+                
+                const response = await fetch('/attendance/recognize', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        image_base64: imageData,
+                        location: location
+                    }),
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`Server returned ${response.status}: ${response.statusText}`);
+                }
+                
+                const result = await response.json();
+                displayRecognitionResults(result, imageData);
+                log(`Recognition completed: ${result.message}`);
+                
+            } catch (error) {
+                resultsMessage.textContent = 'Error: ' + error.message;
+                log('Error during recognition: ' + error.message);
+            } finally {
+                showLoading(false);
+            }
+        }
+        
+        // Function to display recognition results
+        function displayRecognitionResults(result, imageData) {
+            resultsMessage.textContent = result.message;
+            
+            // Clear previous results
+            recognizedStudents.innerHTML = '';
+            faceBoxesContainer.innerHTML = '';
+            
+            // Display face boxes on the image
+            if (result.students || result.unknown_faces) {
+                const imgElement = capturedImageEl;
+                const imgWidth = imgElement.offsetWidth;
+                const imgHeight = imgElement.offsetHeight;
+                const originalWidth = canvas.width;
+                const originalHeight = canvas.height;
+                
+                // Scale factor for drawing boxes
+                const scaleX = imgWidth / originalWidth;
+                const scaleY = imgHeight / originalHeight;
+                
+                // Draw boxes for recognized students
+                if (result.students && result.students.length > 0) {
+                    result.students.forEach(student => {
+                        if (student.face_location) {
+                            const [top, right, bottom, left] = student.face_location;
+                            
+                            // Create face box
+                            const box = document.createElement('div');
+                            box.className = 'face-box';
+                            box.style.borderColor = '#4CAF50';
+                            box.style.top = (top * scaleY) + 'px';
+                            box.style.right = ((originalWidth - right) * scaleX) + 'px';
+                            box.style.bottom = ((originalHeight - bottom) * scaleY) + 'px';
+                            box.style.left = (left * scaleX) + 'px';
+                            
+                            // Create label
+                            const label = document.createElement('div');
+                            label.className = 'face-label';
+                            label.textContent = `${student.name} (${student.confidence}%)`;
+                            box.appendChild(label);
+                            
+                            faceBoxesContainer.appendChild(box);
+                        }
+                        
+                        // Create student card
+                        const card = document.createElement('div');
+                        card.className = 'student-card recognized';
+                        card.innerHTML = `
+                            <h4>${student.name}</h4>
+                            <p>Reg Number: ${student.reg_number}</p>
+                            <p>Confidence: ${student.confidence}%</p>
+                            <div class="attendance-status ${student.can_mark_attendance ? 'status-taken' : 'status-already'}">
+                                ${student.attendance_status}
+                            </div>
+                            <p>${student.attendance_message}</p>
+                        `;
+                        
+                        recognizedStudents.appendChild(card);
+                    });
+                }
+                
+                // Draw boxes for unknown faces
+                if (result.unknown_faces && result.unknown_faces.length > 0) {
+                    result.unknown_faces.forEach(face => {
+                        if (face.location) {
+                            const [top, right, bottom, left] = face.location;
+                            
+                            // Create face box
+                            const box = document.createElement('div');
+                            box.className = 'face-box';
+                            box.style.borderColor = '#f44336';
+                            box.style.top = (top * scaleY) + 'px';
+                            box.style.right = ((originalWidth - right) * scaleX) + 'px';
+                            box.style.bottom = ((originalHeight - bottom) * scaleY) + 'px';
+                            box.style.left = (left * scaleX) + 'px';
+                            
+                            // Create label
+                            const label = document.createElement('div');
+                            label.className = 'face-label';
+                            label.textContent = 'Unknown';
+                            box.appendChild(label);
+                            
+                            faceBoxesContainer.appendChild(box);
+                        }
+                        
+                        // Create unknown face card
+                        const card = document.createElement('div');
+                        card.className = 'student-card unknown';
+                        card.innerHTML = `
+                            <h4>Unknown Person</h4>
+                            <p>${face.message}</p>
+                            <p>Confidence: ${face.confidence}%</p>
+                            <div class="attendance-status status-unknown">Not Registered</div>
+                        `;
+                        
+                        recognizedStudents.appendChild(card);
+                    });
+                }
+            }
+            
+            if (result.students.length === 0 && result.unknown_faces.length === 0) {
+                const noResults = document.createElement('div');
+                noResults.textContent = 'No faces detected or recognized.';
+                recognizedStudents.appendChild(noResults);
+            }
+        }
+        
+        // Functions for the register tab
+        async function startRegisterCamera() {
+            try {
+                registerVideoStream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { 
+                        width: { ideal: 320 },
+                        height: { ideal: 240 },
+                        facingMode: 'user'
+                    } 
+                });
+                registerVideo.srcObject = registerVideoStream;
+                
+                registerStartCameraBtn.disabled = true;
+                registerCaptureBtn.disabled = false;
+                registerStopCameraBtn.disabled = false;
+                registerSubmitBtn.disabled = true;
+                
+                log('Register camera started');
+            } catch (error) {
+                log('Error starting register camera: ' + error.message);
+                alert('Error accessing camera: ' + error.message);
+            }
+        }
+        
+        function stopRegisterCamera() {
+            if (registerVideoStream) {
+                registerVideoStream.getTracks().forEach(track => track.stop());
+                registerVideo.srcObject = null;
+                registerVideoStream = null;
+                
+                registerStartCameraBtn.disabled = false;
+                registerCaptureBtn.disabled = true;
+                registerStopCameraBtn.disabled = true;
+                
+                log('Register camera stopped');
+            }
+        }
+        
+        function captureRegisterPhoto() {
+            if (!registerVideoStream) return;
+            
+            // Draw current video frame to canvas
+            const ctx = registerCanvas.getContext('2d');
+            registerCanvas.width = registerVideo.videoWidth;
+            registerCanvas.height = registerVideo.videoHeight;
+            ctx.drawImage(registerVideo, 0, 0, registerCanvas.width, registerCanvas.height);
+            
+            // Convert canvas to base64 image
+            const imageData = registerCanvas.toDataURL('image/jpeg');
+            
+            // Display preview
+            registerPreview.src = imageData;
+            registerPreview.style.display = 'block';
+            
+            // Enable submit button
+            registerSubmitBtn.disabled = false;
+            
+            log('Photo captured for registration');
+        }
+        
+        async function submitFaceRegistration() {
+            const regNumber = regNumberInput.value.trim();
+            
+            if (!regNumber) {
+                alert('Please enter a valid registration number');
+                return;
+            }
+            
+            if (!registerPreview.src) {
+                alert('Please capture a photo first');
+                return;
+            }
+            
+            try {
+                showLoading(true);
+                
+                const response = await fetch('/attendance/register-face', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        reg_number: regNumber,
+                        image_base64: registerPreview.src
+                    }),
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    registerResult.innerHTML = `<div style="color: green; font-weight: bold;">${result.message}</div>`;
+                    log(`Face registration successful for ${regNumber}`);
+                } else {
+                    registerResult.innerHTML = `<div style="color: red; font-weight: bold;">Error: ${result.detail || result.message}</div>`;
+                    log(`Face registration failed for ${regNumber}: ${result.detail || result.message}`);
+                }
+                
+            } catch (error) {
+                registerResult.innerHTML = `<div style="color: red; font-weight: bold;">Error: ${error.message}</div>`;
+                log(`Error during face registration: ${error.message}`);
+            } finally {
+                showLoading(false);
+            }
+        }
+        
+        // Utility functions
+        function showLoading(show) {
+            loadingIndicator.style.display = show ? 'flex' : 'none';
+        }
+        
+        function log(message) {
+            const now = new Date();
+            const timestamp = now.toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.className = 'log-entry';
+            logEntry.textContent = `[${timestamp}] ${message}`;
+            logContainer.prepend(logEntry);
+        }
+        
+        // Real-time recognition
+        function toggleRealtimeRecognition() {
+            realtimeRecognitionActive = realtimeToggle.checked;
+            
+            if (realtimeRecognitionActive) {
+                if (!videoStream) {
+                    // Start camera if not already running
+                    startCamera().then(() => {
+                        startRealtimeRecognition();
+                    });
+                } else {
+                    startRealtimeRecognition();
+                }
+            } else {
+                stopRealtimeRecognition();
+            }
+        }
+        
+        function startRealtimeRecognition() {
+            log('Starting real-time recognition');
+            
+            // Take a capture immediately
+            captureAndRecognize();
+            
+            // Set interval for continuous capture
+            realtimeTimer = setInterval(() => {
+                captureAndRecognize();
+            }, 5000); // Every 5 seconds
+        }
+        
+        function stopRealtimeRecognition() {
+            if (realtimeTimer) {
+                clearInterval(realtimeTimer);
+                realtimeTimer = null;
+                log('Real-time recognition stopped');
+            }
+        }
+        
+        // Initialize the system
+        function init() {
+            log('Attendance system initialized');
+        }
+        
+        // Start the application
+        init();
+    </script>
+</body>
+</html>

@@ -31,36 +31,60 @@ def can_mark_attendance(reg_number: str, attendance_window_hours: int = 2) -> Di
         
         # Parse the timestamp
         try:
-            latest_timestamp = datetime.fromisoformat(latest_record["timestamp"].replace("Z", "+00:00"))
-        except (ValueError, KeyError):
-            # If we can't parse the timestamp, allow marking attendance
-            return {"can_mark": True, "message": "Unable to parse previous attendance timestamp"}
+            # Make sure to handle timezone properly
+            if isinstance(latest_record["timestamp"], str):
+                # Handle various timestamp formats
+                timestamp_str = latest_record["timestamp"]
+                # Remove 'Z' if present and add UTC indicator
+                if timestamp_str.endswith('Z'):
+                    timestamp_str = timestamp_str[:-1] + '+00:00'
+                # Ensure timezone info is included
+                elif '+' not in timestamp_str and '-' not in timestamp_str[10:]:
+                    timestamp_str += '+00:00'
+                
+                latest_timestamp = datetime.fromisoformat(timestamp_str)
+            else:
+                # If it's already a datetime object
+                latest_timestamp = latest_record["timestamp"]
+                
+        except (ValueError, KeyError) as e:
+            print(f"Error parsing timestamp: {e}")
+            # If we can't parse the timestamp, allow marking attendance but log the issue
+            return {"can_mark": True, "message": f"Unable to parse previous attendance timestamp: {e}"}
         
-        # Get current time
-        current_time = datetime.now()
+        # Get current time in the same timezone as latest_timestamp
+        if latest_timestamp.tzinfo:
+            current_time = datetime.now(latest_timestamp.tzinfo)
+        else:
+            current_time = datetime.now()
         
         # Check if the time difference is greater than the window
         time_diff = current_time - latest_timestamp
+        
+        # Debug print
+        print(f"Time difference: {time_diff.total_seconds()} seconds")
+        print(f"Attendance window: {attendance_window_hours * 3600} seconds")
         
         if time_diff.total_seconds() < attendance_window_hours * 3600:
             # Calculate when they can mark attendance again
             next_allowed_time = latest_timestamp + timedelta(hours=attendance_window_hours)
             time_remaining = next_allowed_time - current_time
-            minutes_remaining = int(time_remaining.total_seconds() / 60)
+            minutes_remaining = max(1, int(time_remaining.total_seconds() / 60))
             
             return {
-                "can_mark": False, 
+                "can_mark": False,
                 "message": f"Attendance already marked. Can mark again in {minutes_remaining} minutes",
                 "last_marked": latest_timestamp.isoformat(),
                 "next_allowed": next_allowed_time.isoformat()
             }
         
         return {"can_mark": True, "message": "Can mark attendance"}
-        
-    except Exception as e:
-        print(f"Error checking if attendance can be marked: {e}")
-        return {"can_mark": False, "message": f"Error: {str(e)}"}
     
+    except Exception as e:
+        import traceback
+        print(f"Error checking if attendance can be marked: {e}")
+        print(traceback.format_exc())
+        return {"can_mark": False, "message": f"Error: {str(e)}"}  
     
 def get_attendance_stats(reg_number: str, days: int = 30) -> Dict[str, Any]:
     """

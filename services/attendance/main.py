@@ -1,10 +1,16 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+
 import uvicorn
 import logging
 from routes.attendance_routes import router as attendance_router
 from routes.students_routes import router as student_router
+
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import HTMLResponse
+from fastapi.responses import RedirectResponse
+
 
 # Configure logging
 logging.basicConfig(
@@ -41,9 +47,18 @@ async def global_exception_handler(request: Request, exc: Exception):
 app.include_router(attendance_router)
 app.include_router(student_router)
 
-@app.get("/")
-async def health_check():
-    return {"status": "ok", "message": "Smart Attendance System API is running"}
+# @app.get("/")
+# async def health_check():
+#     return {"status": "ok", "message": "Smart Attendance System API is running"}
+
+# Mount static files directory
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+@app.get("/", response_class=HTMLResponse)
+async def root():
+    """Redirect to the face recognition UI"""
+    return RedirectResponse(url="/static/index.html")
+ 
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)

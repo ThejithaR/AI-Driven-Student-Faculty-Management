@@ -54,24 +54,32 @@ class AttendanceResponse(BaseModel):
     message: str
     data: Optional[AttendanceRecord] = None
 
-class FaceRecognitionRequest(BaseModel):
+
+class FaceRegisterRequest(BaseModel):
+    reg_number: str
     image_base64: str
-    location: Optional[str] = None
+
 
 class FaceEmbedding(BaseModel):
     reg_number: str
     embedding: List[float]
     name: Optional[str] = None
 
+
+class FaceRecognitionRequest(BaseModel):
+    image_base64: str
+    location: Optional[str] = None
+
 class RecognizedStudent(BaseModel):
     reg_number: str
     name: str
     confidence: float
-    can_mark_attendance: bool = False
-    attendance_message: str = ""
-    attendance_status: str = ""
+    can_mark_attendance: Optional[bool] = None
+    attendance_message: Optional[str] = None
+    attendance_status: Optional[str] = None
     face_location: Optional[List[int]] = None
 
+# Unknown face model
 class UnknownFace(BaseModel):
     face_index: int
     location: Optional[List[int]] = None
@@ -84,25 +92,15 @@ class AttendanceResult(BaseModel):
     name: str
     attendance_result: Dict[str, Any]
 
-class FaceRecognitionRequest(BaseModel):
-    image_base64: str
-    location: Optional[str] = None
-
-
-class RecognizedStudent(BaseModel):
-    reg_number: str
-    name: str
-    confidence: float
-
 class FaceRecognitionResponse(BaseModel):
     success: bool
     message: str
-    total_faces_detected: int = 0
-    recognized_count: int = 0
-    unknown_count: int = 0
+    total_faces_detected: Optional[int] = None
+    recognized_count: Optional[int] = None
+    unknown_count: Optional[int] = None
     students: List[RecognizedStudent] = []
-    unknown_faces: List[UnknownFace] = []
-    attendance_results: List[AttendanceResult] = []
+    unknown_faces: Optional[List[UnknownFace]] = None
+    attendance_results: Optional[List[AttendanceResult]] = None
 
 class StudentAttendanceReport(BaseModel):
     reg_number: str

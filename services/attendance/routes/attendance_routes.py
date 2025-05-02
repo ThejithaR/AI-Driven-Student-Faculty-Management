@@ -15,7 +15,8 @@ from models.schemas import (
     ApiResponse, 
     StudentAttendanceReport, 
     CourseAttendanceReport, 
-    AttendanceReportRequest
+    AttendanceReportRequest,
+    AttendanceResult
 )
 
 from services.face_service import register_face, recognize_faces
@@ -71,6 +72,37 @@ async def mark_manual_attendance(request: ManualAttendanceRequest):
         data=AttendanceRecord(**result["data"])
     )
 
+
+@router.post("/recognize", response_model=FaceRecognitionResponse)
+async def recognize_student_faces(request: FaceRecognitionRequest):
+    """
+    Recognize students in an image and mark attendance if applicable
+    """
+    result = recognize_faces(request.image_base64, request.location)
+    
+    # Convert raw attendance results to proper model objects
+    attendance_results = []
+    if "attendance_results" in result and result["attendance_results"]:
+        for ar in result["attendance_results"]:
+            attendance_results.append(AttendanceResult(
+                reg_number=ar["reg_number"],
+                name=ar["name"],
+                attendance_result=ar["attendance_result"]
+            ))
+    
+    # Create a properly structured response with all fields
+    return FaceRecognitionResponse(
+        success=result["success"],
+        message=result["message"],
+        total_faces_detected=result.get("total_faces_detected", 0),
+        recognized_count=result.get("recognized_count", 0),
+        unknown_count=result.get("unknown_count", 0),
+        students=result.get("students", []),
+        unknown_faces=result.get("unknown_faces", []),
+        attendance_results=attendance_results
+    )
+
+
 # Face registration endpoint
 @router.post("/register-face", response_model=ApiResponse)
 async def register_student_face(request: FaceRegisterRequest):
@@ -86,26 +118,6 @@ async def register_student_face(request: FaceRegisterRequest):
         )
     
     return ApiResponse(success=True, message=result["message"])
-
-# Face recognition attendance endpoint
-@router.post("/recognize", response_model=FaceRecognitionResponse)
-async def recognize_student_faces(request: FaceRecognitionRequest):
-    """
-    Recognize students in an image and mark attendance if applicable
-    """
-    result = recognize_faces(request.image_base64, request.location)
-    
-    # Create a properly structured response with all the new fields
-    return FaceRecognitionResponse(
-        success=result["success"],
-        message=result["message"],
-        total_faces_detected=result.get("total_faces_detected", 0),
-        recognized_count=result.get("recognized_count", 0),
-        unknown_count=result.get("unknown_count", 0),
-        students=result.get("students", []),
-        unknown_faces=result.get("unknown_faces", []),
-        attendance_results=result.get("attendance_results", [])
-    )
 # Get today's attendance for a student
 @router.get("/today/{reg_number}", response_model=ApiResponse)
 async def get_today_attendance(reg_number: str):
@@ -189,8 +201,6 @@ async def get_student_report(request: AttendanceReportRequest):
         message=f"Retrieved attendance report for student {request.reg_number}",
         data=report
     )
-
-# Get course attendance report
 @router.post("/report/course", response_model=ApiResponse)
 async def get_course_report(request: AttendanceReportRequest):
     """
@@ -218,19 +228,27 @@ async def get_course_report(request: AttendanceReportRequest):
     students_present = [record for record in attendance_data if record["status"] == AttendanceStatus.PRESENT]
     students_late = [record for record in attendance_data if record["status"] == AttendanceStatus.LATE]
     
-    # TODO: Calculate total enrolled students for the course
-    # This would require an additional database query to get all enrollments for the course
+    # Get total enrolled students for the course
+    from db.supabase import supabase
+    enrollments = supabase.table("Enrollments") \
+                 .select("*") \
+                 .eq("course_code", request.course_code) \
+                 .execute()
     
-    report = {
-        "course_code": request.course_code,
-        "date": request.start_date or date.today(),
-        "present": len(students_present),
-        "late": len(students_late),
-        "records": attendance_data
-    }
+    total_enrolled = len(enrollments.data) if enrollments.data else 0
+    
+    report = CourseAttendanceReport(
+        course_code=request.course_code,
+        date=request.start_date or date.today(),
+        total_enrolled=total_enrolled,
+        present=len(students_present),
+        late=len(students_late),
+        absent=total_enrolled - len(students_present) - len(students_late),
+        students=attendance_data  # Make sure this matches the schema
+    )
     
     return ApiResponse(
         success=True,
         message=f"Retrieved attendance report for course {request.course_code}",
-        data=report
+        data=report.dict()
     )

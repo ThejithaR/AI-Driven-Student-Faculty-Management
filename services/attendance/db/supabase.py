@@ -3,10 +3,15 @@ from datetime import datetime, date, timedelta
 import os
 import json
 from typing import List, Dict, Any, Optional
+from dotenv import load_dotenv
 
-# In production, use environment variables for these
-url = "https://fbpgrmhqzlobmtmpprvj.supabase.co"
-key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZicGdybWhxemxvYm10bXBwcnZqIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0NTI1MTQ5NiwiZXhwIjoyMDYwODI3NDk2fQ.g1Nn3zlZGUvjpiw_EkYYveJYeF0pWCeWm9JQxS2XGDY"
+
+load_dotenv()  # This loads variables from the .env file into os.environ
+
+key = os.getenv("SUPABASE_KEY")
+url = os.getenv("SUPABASE_URL")
+
+
 supabase = create_client(url, key)
 
 def get_student_profile(reg_number: str) -> Dict[str, Any]:
