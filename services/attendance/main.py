@@ -67,3 +67,4 @@ if __name__ == "__main__":
 
 # http://localhost:8000/
 # uvicorn main:app --reload
+# http://localhost:5173/

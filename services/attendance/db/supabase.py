@@ -97,22 +97,25 @@ def get_all_face_embeddings() -> List[Dict[str, Any]]:
     Get all face embeddings from the database
     
     Returns:
-        List of dictionaries with reg_number, and embedding
+        List of dictionaries with reg_number, name, and embedding
     """
     try:
         # Join with Student profiles to get student name
         result = supabase.table('Face_embeddings') \
-    .select('reg_number, face_embedding, "Student profiles"(name)') \
-    .execute()
-
+            .select('reg_number, face_embedding, "Student profiles"(name)') \
+            .execute()
         
         processed_records = []
         # Parse the face_embedding JSON string back to a list
         for record in result.data:
             if 'face_embedding' in record:
+                # Access the name from the nested "Student profiles" object
+                student_profile = record.get('Student profiles', {})
+                student_name = student_profile.get('name', 'Unknown') if student_profile else 'Unknown'
+                
                 processed_record = {
                     'reg_number': record['reg_number'],
-                    'name': record.get('name', 'Unknown'),
+                    'name': student_name,
                     'embedding': json.loads(record['face_embedding'])
                 }
                 processed_records.append(processed_record)
@@ -121,7 +124,7 @@ def get_all_face_embeddings() -> List[Dict[str, Any]]:
     except Exception as e:
         print(f"Error getting face embeddings: {e}")
         return []
-    
+       
 def log_attendance(reg_number: str, method: str = "face_recognition", 
                   status: str = "present", location: str = None) -> Dict[str, Any]:
     """

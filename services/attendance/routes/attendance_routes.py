@@ -119,6 +119,8 @@ async def register_student_face(request: FaceRegisterRequest):
     
     return ApiResponse(success=True, message=result["message"])
 # Get today's attendance for a student
+
+
 @router.get("/today/{reg_number}", response_model=ApiResponse)
 async def get_today_attendance(reg_number: str):
     """

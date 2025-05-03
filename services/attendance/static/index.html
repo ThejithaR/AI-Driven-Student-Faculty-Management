@@ -3,580 +3,519 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Real-time Attendance System</title>
-    <script src="opencv.js"></script>
+    <title>Realtime Face Recognition</title>
     <style>
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            margin: 0;
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
             padding: 20px;
-            background-color: #f5f5f5;
         }
         .container {
-            max-width: 1000px;
-            margin: 0 auto;
-            background-color: white;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        h1 {
-            color: #2c3e50;
-            text-align: center;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
         }
         .video-container {
-            display: flex;
-            justify-content: center;
-            margin: 20px 0;
             position: relative;
-        }
-        #video, #canvasOutput {
             width: 640px;
             height: 480px;
-            border-radius: 8px;
-            border: 2px solid #ddd;
+        }
+        #videoElement {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
         }
         #canvasOutput {
             position: absolute;
-            top: 0;
-            left: 50%;
-            transform: translateX(-50%);
+            width: 100%;
+            height: 100%;
+            z-index: 10;
         }
         .controls {
             display: flex;
-            justify-content: center;
             gap: 10px;
-            margin: 20px 0;
-        }
-        button {
-            background-color: #3498db;
-            color: white;
-            border: none;
-            padding: 10px 15px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 16px;
-            transition: background-color 0.2s;
-        }
-        button:hover {
-            background-color: #2980b9;
-        }
-        button.stop {
-            background-color: #e74c3c;
-        }
-        button.stop:hover {
-            background-color: #c0392b;
-        }
-        button:disabled {
-            background-color: #95a5a6;
-            cursor: not-allowed;
-        }
-        .status {
-            text-align: center;
-            margin: 10px 0;
-            font-weight: bold;
-            color: #7f8c8d;
+            margin-bottom: 10px;
         }
         .results {
-            margin-top: 20px;
-            border-top: 1px solid #eee;
-            padding-top: 20px;
-        }
-        .recognized-students {
-            max-height: 300px;
-            overflow-y: auto;
-            margin-top: 15px;
-        }
-        .student-card {
-            background-color: #f9f9f9;
-            padding: 10px 15px;
-            border-radius: 5px;
-            margin-bottom: 10px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .student-card .name {
-            font-weight: bold;
-            font-size: 18px;
-        }
-        .student-card .reg-number {
-            color: #7f8c8d;
-        }
-        .student-card .confidence {
-            background-color: #2ecc71;
-            color: white;
-            padding: 3px 8px;
-            border-radius: 12px;
-            font-size: 12px;
-        }
-        .student-card .status {
-            font-size: 14px;
-            background-color: #3498db;
-            color: white;
-            padding: 3px 8px;
-            border-radius: 12px;
-            margin-left: 5px;
-        }
-        .face-box {
-            position: absolute;
-            border: 3px solid #2ecc71;
-            box-sizing: border-box;
-        }
-        .face-label {
-            position: absolute;
-            background-color: rgba(46, 204, 113, 0.7);
-            color: white;
-            padding: 2px 6px;
-            font-size: 12px;
-            border-radius: 3px;
-            top: -20px;
-            left: 0;
-            white-space: nowrap;
-        }
-        .settings {
-            margin: 20px 0;
-            padding: 15px;
-            background-color: #f9f9f9;
-            border-radius: 5px;
-        }
-        .settings h3 {
-            margin-top: 0;
-        }
-        .setting-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 10px;
-        }
-        input[type="range"], input[type="number"] {
-            width: 60%;
-        }
-        .log-container {
-            margin-top: 20px;
+            border: 1px solid #ccc;
             padding: 10px;
-            background-color: #f9f9f9;
-            border-radius: 5px;
-            max-height: 100px;
+            height: 300px;
             overflow-y: auto;
         }
-        .log-entry {
-            font-family: monospace;
-            font-size: 12px;
-            margin: 3px 0;
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .status {
+            padding: 10px;
+            margin-bottom: 10px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+        }
+        #errorMessage {
+            color: red;
+            font-weight: bold;
+            margin: 10px 0;
         }
     </style>
 </head>
 <body>
+    <h1>Realtime Face Recognition</h1>
+    
     <div class="container">
-        <h1>Real-time Attendance System</h1>
-        
-        <div class="settings">
-            <h3>Settings</h3>
-            <div class="setting-row">
-                <label for="threshold">Recognition Threshold:</label>
-                <input type="range" id="threshold" min="0.1" max="0.9" step="0.05" value="0.6">
-                <span id="threshold-value">0.6</span>
-            </div>
-            <div class="setting-row">
-                <label for="fps">Processing FPS:</label>
-                <input type="number" id="fps" min="1" max="30" value="5">
-            </div>
-            <div class="setting-row">
-                <label for="serverUrl">WebSocket Server URL:</label>
-                <input type="text" id="serverUrl" value="ws://localhost:8000/realtime/face-recognition" style="width: 60%;">
-            </div>
+        <div class="controls">
+            <button id="startButton" disabled>Start Camera</button>
+            <button id="stopButton" disabled>Stop Camera</button>
+            <label for="threshold">Recognition Threshold:</label>
+            <input type="range" id="threshold" min="0.1" max="0.9" step="0.1" value="0.6">
+            <span id="thresholdValue">0.6</span>
+            <label for="location">Location:</label>
+            <input type="text" id="location" placeholder="Optional location name">
         </div>
-
+        
+        <div class="status" id="status">
+            Loading OpenCV.js...
+        </div>
+        <div id="errorMessage"></div>
+        
         <div class="video-container">
-            <video id="video" autoplay muted></video>
+            <video id="videoElement" autoplay playsinline></video>
             <canvas id="canvasOutput"></canvas>
         </div>
-
-        <div class="controls">
-            <button id="startBtn">Start Recognition</button>
-            <button id="stopBtn" class="stop" disabled>Stop Recognition</button>
-            <button id="registerBtn">Register New Face</button>
-        </div>
-
-        <div class="status" id="status">Status: Disconnected</div>
-
-        <div class="results">
-            <h2>Recognized Students</h2>
-            <div class="recognized-students" id="recognizedStudents">
-                <!-- Recognized students will appear here -->
+        
+        <div>
+            <h2>Recognition Results</h2>
+            <div class="results" id="results">
+                <table id="resultsTable">
+                    <thead>
+                        <tr>
+                            <th>Time</th>
+                            <th>Recognized</th>
+                            <th>Unknown</th>
+                            <th>Total</th>
+                            <th>Students</th>
+                        </tr>
+                    </thead>
+                    <tbody id="resultsBody">
+                    </tbody>
+                </table>
             </div>
-        </div>
-
-        <div class="log-container">
-            <h3>System Log</h3>
-            <div id="log"></div>
         </div>
     </div>
 
+    <!-- Load OpenCV.js -->
+    <script src="opencv.js" async onload="onOpenCvScriptLoaded()" onerror="onOpenCvError()"></script>
+
     <script>
+        // UI Elements
+        let video = document.getElementById('videoElement');
+        let canvasOutput = document.getElementById('canvasOutput');
+        let startButton = document.getElementById('startButton');
+        let stopButton = document.getElementById('stopButton');
+        let thresholdSlider = document.getElementById('threshold');
+        let thresholdValue = document.getElementById('thresholdValue');
+        let locationInput = document.getElementById('location');
+        let status = document.getElementById('status');
+        let errorMessage = document.getElementById('errorMessage');
+        let resultsBody = document.getElementById('resultsBody');
+        
         // Global variables
-    let video, canvas, ctx;
-    let startBtn, stopBtn, registerBtn, statusElement, recognizedStudentsElement, logElement;
-    let streaming = false;
-    let socket;
-    let processingTimer;
-    let faceBoxes = [];
-    let recognizedStudents = {};
-    
-    // OpenCV initialization flag
-    let opencvLoaded = false;
-
-    // Initialize the application on DOM content loaded
-    document.addEventListener('DOMContentLoaded', function() {
-        initializeElements();
-        setupEventListeners();
-        updateThresholdValue();
+        let streaming = false;
+        let stream = null;
+        let socket = null;
+        let faceCascadePath = 'haarcascade_frontalface_default.xml';
+        let faceCascade;
+        let src, gray, dst;
+        let frameCount = 0;
+        let sendInterval = 5; // Send every 5th frame to reduce load
         
-        // Check if OpenCV is already loaded
-        if (typeof cv !== 'undefined') {
-            onOpenCvReady();
-        } else {
-            logMessage('Waiting for OpenCV.js to load...', 'warning');
-            document.getElementById('startBtn').disabled = true;
-        }
-    });
-
-    // Wait for OpenCV.js to be loaded
-    function onOpenCvReady() {
-        // Make sure elements are initialized
-        if (!logElement) {
-            initializeElements();
+        // Called when OpenCV.js script is loaded
+        function onOpenCvScriptLoaded() {
+            status.textContent = 'OpenCV.js script loaded. Waiting for OpenCV to initialize...';
         }
         
-        console.log('OpenCV.js is ready');
-        opencvLoaded = true;
-        logMessage('OpenCV.js loaded successfully');
-        document.getElementById('startBtn').disabled = false;
-    }
-
-        // Initialize DOM elements
-        function initializeElements() {
-            video = document.getElementById('video');
-            canvas = document.getElementById('canvasOutput');
-            ctx = canvas.getContext('2d');
-            startBtn = document.getElementById('startBtn');
-            stopBtn = document.getElementById('stopBtn');
-            registerBtn = document.getElementById('registerBtn');
-            statusElement = document.getElementById('status');
-            recognizedStudentsElement = document.getElementById('recognizedStudents');
-            logElement = document.getElementById('log');
+        // Called if OpenCV.js fails to load
+        function onOpenCvError() {
+            status.textContent = 'Failed to load OpenCV.js!';
+            errorMessage.textContent = 'Could not load OpenCV.js. Please check if the file exists in the correct location.';
+        }
+        
+        // Called when OpenCV.js is ready to use
+        function onOpenCvReady() {
+            status.textContent = 'OpenCV.js is ready. Click "Start Camera" to begin.';
+            startButton.disabled = false;
             
-            // Set canvas dimensions
-            canvas.width = 640;
-            canvas.height = 480;
-        }
-
-        // Set up event listeners
-        function setupEventListeners() {
-            startBtn.addEventListener('click', startRecognition);
-            stopBtn.addEventListener('click', stopRecognition);
-            registerBtn.addEventListener('click', openRegistrationForm);
+            // Update threshold value display
+            thresholdSlider.addEventListener('input', function() {
+                thresholdValue.textContent = this.value;
+            });
             
-            document.getElementById('threshold').addEventListener('input', updateThresholdValue);
+            // Start camera event
+            startButton.addEventListener('click', startCamera);
+            
+            // Stop camera event
+            stopButton.addEventListener('click', stopCamera);
         }
-
-        // Update threshold value display
-        function updateThresholdValue() {
-            const threshold = document.getElementById('threshold').value;
-            document.getElementById('threshold-value').textContent = threshold;
-        }
-
-        // Start the recognition process
-        async function startRecognition() {
+        
+        // Start camera and face detection
+        async function startCamera() {
             try {
-                // Check if OpenCV is loaded
-                if (!opencvLoaded) {
-                    alert('OpenCV.js is not loaded yet. Please wait.');
-                    return;
-                }
-                
-                // Get user media
-                const stream = await navigator.mediaDevices.getUserMedia({ 
-                    video: { width: 640, height: 480 }, 
-                    audio: false 
+                // Initialize camera
+                stream = await navigator.mediaDevices.getUserMedia({
+                    video: { width: 640, height: 480 },
+                    audio: false
                 });
                 
                 video.srcObject = stream;
-                video.play();
+                // Set up face detection (without cascade for now)
+                status.textContent = 'Camera starting. Waiting for video to load...';
+                startButton.disabled = true;
+                stopButton.disabled = false;
                 
-                // Connect to WebSocket server
-                connectWebSocket();
+                // Wait for video to be playing before starting processing
+                video.onloadedmetadata = function() {
+                    // Set canvas size based on actual video size
+                    canvasOutput.width = video.videoWidth;
+                    canvasOutput.height = video.videoHeight;
+                    
+                    // Start playing the video
+                    video.play();
+                };
                 
-                // Update UI
-                startBtn.disabled = true;
-                stopBtn.disabled = false;
-                registerBtn.disabled = true;
-                statusElement.textContent = 'Status: Starting...';
+                // Wait until the video is actually playing and has dimensions
+                video.onplaying = function() {
+                    status.textContent = 'Camera started. Face detection will begin soon...';
+                    
+                    // Wait a short moment to ensure video is actually playing
+                    setTimeout(() => {
+                        // Set up WebSocket
+                        connectWebSocket();
+                        
+                        // Start processing video (without face detection initially)
+                        streaming = true;
+                        processVideo();
+                    }, 500);
+                };
                 
-                // Set streaming flag
-                streaming = true;
+                // Load face cascade after starting camera
+                loadFaceCascade();
                 
-                // Start the processing loop
-                startProcessingLoop();
-                
-                logMessage('Recognition started');
-            } catch (err) {
-                console.error('Error starting camera:', err);
-                logMessage('Error: ' + err.message, 'error');
-                alert('Error starting camera: ' + err.message);
+            } catch (error) {
+                console.error('Error starting camera:', error);
+                status.textContent = 'Failed to start camera.';
+                errorMessage.textContent = 'Error: ' + error.message;
             }
         }
-
+        
+        // Load face cascade file
+        function loadFaceCascade() {
+            try {
+                status.textContent = 'Loading face detection cascade...';
+                
+                // Create file from URL utility
+                function createFileFromUrl(url, callback) {
+                    let request = new XMLHttpRequest();
+                    request.open('GET', url, true);
+                    request.responseType = 'arraybuffer';
+                    request.onload = function(ev) {
+                        if (request.readyState === 4) {
+                            if (request.status === 200) {
+                                let data = new Uint8Array(request.response);
+                                cv.FS_createDataFile('/', faceCascadePath, data, true, false, false);
+                                callback();
+                            } else {
+                                errorMessage.textContent = 'Failed to load cascade file: ' + request.status;
+                            }
+                        }
+                    };
+                    request.send();
+                }
+                
+                // Load the cascade file
+                createFileFromUrl(faceCascadePath, () => {
+                    try {
+                        // Create cascade classifier
+                        faceCascade = new cv.CascadeClassifier();
+                        faceCascade.load(faceCascadePath);
+                        
+                        // Check if loaded successfully
+                        if (faceCascade.empty()) {
+                            errorMessage.textContent = 'Failed to load cascade - file may be corrupted';
+                            status.textContent = 'Face detection not available.';
+                        } else {
+                            status.textContent = 'Face detection enabled.';
+                            errorMessage.textContent = '';
+                        }
+                    } catch (err) {
+                        console.error('Error loading cascade classifier:', err);
+                        errorMessage.textContent = 'Error initializing face detection: ' + err.message;
+                    }
+                });
+            } catch (error) {
+                console.error('Error setting up face detection:', error);
+                errorMessage.textContent = 'Error setting up face detection: ' + error.message;
+            }
+        }
+        
+        // Stop camera and face detection
+        function stopCamera() {
+            if (streaming) {
+                // Stop streaming
+                streaming = false;
+                
+                // Close WebSocket
+                if (socket && socket.readyState === WebSocket.OPEN) {
+                    socket.close();
+                }
+                
+                // Stop camera
+                if (stream) {
+                    stream.getTracks().forEach(track => track.stop());
+                }
+                
+                // Reset UI
+                startButton.disabled = false;
+                stopButton.disabled = true;
+                status.textContent = 'Camera stopped.';
+                
+                // Clean up OpenCV resources
+                cleanupOpenCvResources();
+            }
+        }
+        
+        // Clean up OpenCV resources
+        function cleanupOpenCvResources() {
+            try {
+                if (src) {
+                    src.delete();
+                    src = null;
+                }
+                if (dst) {
+                    dst.delete();
+                    dst = null;
+                }
+                if (gray) {
+                    gray.delete();
+                    gray = null;
+                }
+                if (faceCascade) {
+                    faceCascade.delete();
+                    faceCascade = null;
+                }
+            } catch (e) {
+                console.error('Error cleaning up resources:', e);
+            }
+        }
+        
         // Connect to WebSocket server
         function connectWebSocket() {
-            const serverUrl = document.getElementById('serverUrl').value;
-            socket = new WebSocket(serverUrl);
+            // Create WebSocket connection
+            const wsProtocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
+            const wsUrl = `${wsProtocol}${window.location.host}/realtime/face-recognition`;
+            
+            socket = new WebSocket(wsUrl);
             
             socket.onopen = function() {
-                statusElement.textContent = 'Status: Connected';
-                logMessage('WebSocket connection established');
-            };
-            
-            socket.onmessage = function(event) {
-                const response = JSON.parse(event.data);
-                processRecognitionResponse(response);
+                status.textContent += ' WebSocket connected.';
             };
             
             socket.onclose = function() {
-                statusElement.textContent = 'Status: Disconnected';
-                logMessage('WebSocket connection closed');
-                if (streaming) {
-                    stopRecognition();
-                }
+                status.textContent = 'WebSocket connection closed.';
             };
             
             socket.onerror = function(error) {
-                logMessage('WebSocket error: ' + error.message, 'error');
                 console.error('WebSocket error:', error);
+                errorMessage.textContent = 'WebSocket connection error. Backend service may not be available.';
+            };
+            
+            socket.onmessage = function(event) {
+                try {
+                    const response = JSON.parse(event.data);
+                    logResults(response);
+                } catch (error) {
+                    console.error('Error parsing WebSocket response:', error);
+                }
             };
         }
-
-        // Start the processing loop
-        function startProcessingLoop() {
-            const fps = parseInt(document.getElementById('fps').value);
-            const interval = 1000 / fps;
-            
-            processingTimer = setInterval(processVideoFrame, interval);
-        }
-
-        // Process a video frame
-        function processVideoFrame() {
-            if (!streaming || !socket || socket.readyState !== WebSocket.OPEN) {
+        
+        // Simple approach that avoids OpenCV.js for video capture
+        function processVideo() {
+            if (!streaming) {
                 return;
             }
             
             try {
-                // Draw the current video frame to canvas
-                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                // Make sure video element is properly initialized
+                if (!video.videoWidth || !video.videoHeight || video.videoWidth === 0 || video.videoHeight === 0) {
+                    console.log("Video dimensions not ready yet, waiting...");
+                    requestAnimationFrame(processVideo);
+                    return;
+                }
                 
-                // Get the image data as a base64 string
+                // Make sure canvas is properly sized
+                if (canvasOutput.width !== video.videoWidth || canvasOutput.height !== video.videoHeight) {
+                    canvasOutput.width = video.videoWidth;
+                    canvasOutput.height = video.videoHeight;
+                }
+                
+                // Get canvas context
+                const ctx = canvasOutput.getContext('2d');
+                
+                // Draw video frame on canvas
+                ctx.drawImage(video, 0, 0, canvasOutput.width, canvasOutput.height);
+                
+                // Get image data for face detection
+                const imageData = ctx.getImageData(0, 0, canvasOutput.width, canvasOutput.height);
+                
+                // Do face detection if cascade is loaded
+                if (faceCascade && !faceCascade.empty()) {
+                    try {
+                        // Convert imageData to Mat
+                        let src = cv.matFromImageData(imageData);
+                        let gray = new cv.Mat();
+                        
+                        // Convert to grayscale
+                        cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
+                        
+                        // Detect faces
+                        let faces = new cv.RectVector();
+                        faceCascade.detectMultiScale(gray, faces, 1.1, 3, 0);
+                        
+                        // Draw rectangles around faces
+                        for (let i = 0; i < faces.size(); ++i) {
+                            let face = faces.get(i);
+                            ctx.strokeStyle = 'green';
+                            ctx.lineWidth = 2;
+                            ctx.strokeRect(face.x, face.y, face.width, face.height);
+                        }
+                        
+                        // Clean up resources
+                        src.delete();
+                        gray.delete();
+                        faces.delete();
+                    } catch (e) {
+                        console.error('Face detection error:', e);
+                    }
+                }
+                
+                // Send frame to backend for recognition
+                frameCount++;
+                if (frameCount % sendInterval === 0 && socket && socket.readyState === WebSocket.OPEN) {
+                    sendFrameToBackend(canvasOutput);
+                }
+                
+                // Continue processing
+                requestAnimationFrame(processVideo);
+                
+            } catch (err) {
+                console.error('Error in processVideo:', err);
+                errorMessage.textContent = 'Error processing video: ' + err.message;
+                
+                // Try to continue despite errors
+                requestAnimationFrame(processVideo);
+            }
+        }
+        
+        // Send frame to backend
+        function sendFrameToBackend(canvas) {
+            try {
+                // Get base64 image from canvas
                 const imageData = canvas.toDataURL('image/jpeg', 0.7);
                 const base64Data = imageData.split(',')[1];
                 
-                // Prepare data to send
-                const threshold = document.getElementById('threshold').value;
+                // Create data to send
                 const data = {
                     image_base64: base64Data,
-                    threshold: parseFloat(threshold)
+                    threshold: parseFloat(thresholdSlider.value),
+                    location: locationInput.value || null
                 };
                 
                 // Send to server
                 socket.send(JSON.stringify(data));
-            } catch (err) {
-                console.error('Error processing frame:', err);
-                logMessage('Error processing frame: ' + err.message, 'error');
-            }
-        }
-
-        // Process the recognition response
-        function processRecognitionResponse(response) {
-            console.log('Recognition response:', response);
-            
-            // Clear previous face boxes
-            faceBoxes = [];
-            
-            if (response.success) {
-                // Process recognized students
-                if (response.students && response.students.length > 0) {
-                    response.students.forEach((student) => {
-                        // Add to recognized students object if not already there
-                        if (!recognizedStudents[student.reg_number]) {
-                            recognizedStudents[student.reg_number] = student;
-                            // Add to UI
-                            addRecognizedStudentToUI(student);
-                        } else {
-                            // Update existing student data
-                            recognizedStudents[student.reg_number] = student;
-                            // Update UI
-                            updateRecognizedStudentInUI(student);
-                        }
-                        
-                        // Add face box if location is available
-                        if (student.face_location) {
-                            const [top, right, bottom, left] = student.face_location;
-                            faceBoxes.push({
-                                left: left,
-                                top: top,
-                                width: right - left,
-                                height: bottom - top,
-                                label: `${student.name} (${student.confidence}%)`
-                            });
-                        }
-                    });
-                }
                 
-                // Process unknown faces
-                if (response.unknown_faces && response.unknown_faces.length > 0) {
-                    response.unknown_faces.forEach((face) => {
-                        if (face.location) {
-                            const [top, right, bottom, left] = face.location;
-                            faceBoxes.push({
-                                left: left,
-                                top: top,
-                                width: right - left,
-                                height: bottom - top,
-                                label: 'Unknown',
-                                unknown: true
-                            });
-                        }
-                    });
-                }
-                
-                // Draw face boxes
-                drawFaceBoxes();
-            } else {
-                logMessage('Recognition failed: ' + response.message, 'warning');
+            } catch (error) {
+                console.error('Error sending frame to backend:', error);
+                errorMessage.textContent = 'Error sending frame to backend: ' + error.message;
             }
         }
-
-        // Draw face boxes on the canvas
-        function drawFaceBoxes() {
-            // Clear previous drawings (but keep the video frame)
-            const tempCanvas = document.createElement('canvas');
-            tempCanvas.width = canvas.width;
-            tempCanvas.height = canvas.height;
-            const tempCtx = tempCanvas.getContext('2d');
-            tempCtx.drawImage(canvas, 0, 0);
-            
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.drawImage(tempCanvas, 0, 0);
-            
-            // Draw new face boxes
-            faceBoxes.forEach((box) => {
-                // Draw rectangle
-                ctx.strokeStyle = box.unknown ? '#e74c3c' : '#2ecc71';
-                ctx.lineWidth = 3;
-                ctx.strokeRect(box.left, box.top, box.width, box.height);
-                
-                // Draw label background
-                ctx.fillStyle = box.unknown ? 'rgba(231, 76, 60, 0.7)' : 'rgba(46, 204, 113, 0.7)';
-                const labelWidth = ctx.measureText(box.label).width + 10;
-                ctx.fillRect(box.left, box.top - 25, labelWidth, 20);
-                
-                // Draw label text
-                ctx.fillStyle = '#ffffff';
-                ctx.font = '12px Arial';
-                ctx.fillText(box.label, box.left + 5, box.top - 10);
-            });
-        }
-
-        // Add a recognized student to the UI
-        function addRecognizedStudentToUI(student) {
-            const studentCard = document.createElement('div');
-            studentCard.className = 'student-card';
-            studentCard.id = `student-${student.reg_number}`;
-            
-            studentCard.innerHTML = `
-                <div>
-                    <div class="name">${student.name}</div>
-                    <div class="reg-number">${student.reg_number}</div>
-                </div>
-                <div>
-                    <span class="confidence">${student.confidence}%</span>
-                    <span class="status">${student.attendance_status}</span>
-                </div>
-            `;
-            
-            recognizedStudentsElement.appendChild(studentCard);
-            
-            logMessage(`Recognized: ${student.name} (${student.reg_number})`);
-        }
-
-        // Update a recognized student in the UI
-        function updateRecognizedStudentInUI(student) {
-            const studentCard = document.getElementById(`student-${student.reg_number}`);
-            if (studentCard) {
-                const confidence = studentCard.querySelector('.confidence');
-                confidence.textContent = `${student.confidence}%`;
-                
-                const status = studentCard.querySelector('.status');
-                status.textContent = `${student.attendance_status}`;
-            }
-        }
-
-        // Stop the recognition process
-        function stopRecognition() {
-            // Stop video stream
-            if (video.srcObject) {
-                const tracks = video.srcObject.getTracks();
-                tracks.forEach(track => track.stop());
-                video.srcObject = null;
+        
+        // Log recognition results
+        function logResults(response) {
+            if (!response.success) {
+                console.error('Recognition error:', response.message);
+                errorMessage.textContent = 'Recognition error: ' + response.message;
+                return;
             }
             
-            // Clear processing timer
-            if (processingTimer) {
-                clearInterval(processingTimer);
-                processingTimer = null;
-            }
+            // Create a new row in the results table
+            const row = document.createElement('tr');
             
-            // Close WebSocket
-            if (socket) {
-                socket.close();
-                socket = null;
-            }
-            
-            // Update UI
-            startBtn.disabled = false;
-            stopBtn.disabled = true;
-            registerBtn.disabled = false;
-            statusElement.textContent = 'Status: Stopped';
-            
-            // Reset streaming flag
-            streaming = false;
-            
-            logMessage('Recognition stopped');
-        }
-
-        // Open registration form
-        function openRegistrationForm() {
-            // This would ideally open a modal for face registration
-            alert('This would open a face registration form.');
-            // In a real implementation, you would capture an image and send it to the server for registration
-        }
-
-        // Log a message to the log container
-        function logMessage(message, type = 'info') {
+            // Format timestamp
             const now = new Date();
-            const timeString = now.toLocaleTimeString();
+            const timestamp = now.toLocaleTimeString();
             
-            const logEntry = document.createElement('div');
-            logEntry.className = 'log-entry';
-            logEntry.textContent = `[${timeString}] ${message}`;
+            // Create cells
+            const timeCell = document.createElement('td');
+            timeCell.textContent = timestamp;
             
-            if (type === 'error') {
-                logEntry.style.color = '#e74c3c';
-            } else if (type === 'warning') {
-                logEntry.style.color = '#f39c12';
+            const recognizedCell = document.createElement('td');
+            recognizedCell.textContent = response.recognized_count;
+            
+            const unknownCell = document.createElement('td');
+            unknownCell.textContent = response.unknown_count;
+            
+            const totalCell = document.createElement('td');
+            totalCell.textContent = response.total_faces_detected;
+            
+            const studentsCell = document.createElement('td');
+            if (response.students && response.students.length > 0) {
+                studentsCell.textContent = response.students.map(s => s.name).join(', ');
+            } else {
+                studentsCell.textContent = 'None';
             }
             
-            logElement.appendChild(logEntry);
-            logElement.scrollTop = logElement.scrollHeight;
+            // Add cells to row
+            row.appendChild(timeCell);
+            row.appendChild(recognizedCell);
+            row.appendChild(unknownCell);
+            row.appendChild(totalCell);
+            row.appendChild(studentsCell);
+            
+            // Add row to table
+            resultsBody.prepend(row);
+            
+            // Limit table rows
+            if (resultsBody.children.length > 100) {
+                resultsBody.removeChild(resultsBody.lastChild);
+            }
+            
+            // Clear any error messages
+            errorMessage.textContent = '';
+        }
+        
+        // Setup OpenCV when it's ready
+        function onOpenCvLoaded() {
+            onOpenCvReady();
+        }
+        
+        // Check if OpenCV.js is already loaded
+        if (typeof cv !== 'undefined' && cv.Mat) {
+            onOpenCvReady();
+        } else {
+            // If not loaded yet, set the callback
+            window.Module = {
+                onRuntimeInitialized: onOpenCvLoaded
+            };
         }
     </script>
 </body>
