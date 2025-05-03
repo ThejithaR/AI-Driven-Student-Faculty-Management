@@ -13,6 +13,8 @@ import ScheduleManager from "./pages/scheduleManager";
 import Notifications from "./pages/notifications";
 import CourseEnrollments from "./pages/courseEnrollments";
 import RegisterFace from "./pages/attendance/registerFace";
+import ManualAttendance from "./pages/attendance/manualAttendance";
+import RealtimeAttendance from "./pages/attendance/realtimeAttendance";
 
 const App = () => {
   return (
@@ -37,6 +39,8 @@ const App = () => {
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/attendance" element={<Attendance />} />
         <Route path="/register-face" element={<RegisterFace />} />
+        <Route path="/manual-attendance" element={<ManualAttendance />} />
+        <Route path="/realtime-attendance" element={<RealtimeAttendance />} />
         <Route path="/chatbot" element={<Chatbot />} />
         <Route path="/schedule-manager" element={<ScheduleManager />} />
         <Route path="/notifications" element={<Notifications />} />

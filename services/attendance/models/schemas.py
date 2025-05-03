@@ -13,11 +13,13 @@ class AttendanceStatus(str, Enum):
     PRESENT = "present"
     ABSENT = "absent"
     LATE = "late"
+    EXCUSED = "excused"
 
 class ManualAttendanceRequest(BaseModel):
     reg_number: str
     status: AttendanceStatus = AttendanceStatus.PRESENT
     location: Optional[str] = None
+    course_code: str
 
 class StudentProfile(BaseModel):
     reg_number: str

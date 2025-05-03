@@ -124,36 +124,50 @@ def get_all_face_embeddings() -> List[Dict[str, Any]]:
     except Exception as e:
         print(f"Error getting face embeddings: {e}")
         return []
-       
-def log_attendance(reg_number: str, method: str = "face_recognition", 
-                  status: str = "present", location: str = None) -> Dict[str, Any]:
+def log_attendance(
+    reg_number: str,
+    method: str = "face_recognition",
+    status: str = "present",
+    location: str = None,
+    course_code: str = None
+) -> Dict[str, Any]:
     """
-    Log attendance for a student
-    
-    Args:
-        reg_number: The student registration number
-        method: The attendance method (face_recognition or manual)
-        status: Attendance status (present, absent, late)
-        location: Optional location information
-        
-    Returns:
-        Dictionary with operation result
+    Log attendance for a student with optional course validation
     """
     try:
+        # Validate course code if provided
+        if course_code:
+            course_check = supabase.table("Courses").select("course_code").eq("course_code", course_code).execute()
+            if not course_check.data:
+                return {
+                    "success": False,
+                    "message": f"Course with code '{course_code}' does not exist."
+                }
+
+        # Prepare attendance data
         data = {
-            'reg_number': reg_number,
-            'method': method,
-            'status': status
+            "reg_number": reg_number,
+            "method": method,
+            "status": status
         }
-        
+
         if location:
-            data['location'] = location
-        
-        result = supabase.table('Attendance logs').insert(data).execute()
-        return {"success": True, "message": "Attendance logged", "data": result.data[0]}
+            data["location"] = location
+        if course_code:
+            data["course_code"] = course_code
+
+        # Insert attendance log
+        result = supabase.table("Attendance logs").insert(data).execute()
+        return {
+            "success": True,
+            "message": "Attendance logged",
+            "data": result.data[0]
+        }
+
     except Exception as e:
         print(f"Error logging attendance: {e}")
         return {"success": False, "message": str(e)}
+
     
 def get_attendance_today(reg_number: str) -> Dict[str, Any]:
     """

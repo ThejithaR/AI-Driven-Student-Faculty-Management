@@ -57,7 +57,8 @@ async def mark_manual_attendance(request: ManualAttendanceRequest):
         reg_number=request.reg_number,
         method=AttendanceMethod.MANUAL,
         status=request.status,
-        location=request.location
+        location=request.location,
+        course_code=request.course_code  # <-- Include course_code
     )
     
     if not result["success"]:

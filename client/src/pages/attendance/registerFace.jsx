@@ -3,7 +3,6 @@ import Webcam from "react-webcam";
 import { registerFace } from "../../context/attendaceApi";
 import { toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
-import { assets } from "../../assets/assets";
 import { FaUpload, FaCamera, FaHome } from "react-icons/fa"; // Added icons for better UI
 
 const RegisterFace = () => {

@@ -101,9 +101,10 @@ def register_face(reg_number: str, image_base64: str) -> Dict[str, Any]:
     except Exception as e:
         print(f"Error registering face: {e}")
         return {"success": False, "message": str(e)}
-
+    
+    
 def recognize_faces(image_base64: str, location: Optional[str] = None, 
-                    threshold: float = 0.6) -> Dict[str, Any]:
+                    threshold: float = 0.6, course_code: Optional[str] = None) -> Dict[str, Any]:
     """
     Recognize faces in an image
     
@@ -111,6 +112,7 @@ def recognize_faces(image_base64: str, location: Optional[str] = None,
         image_base64: Base64 encoded image
         location: Optional location information for attendance logging
         threshold: Similarity threshold (lower is more strict)
+        course_code: Optional course code for attendance
         
     Returns:
         Dictionary with recognized students
@@ -135,32 +137,25 @@ def recognize_faces(image_base64: str, location: Optional[str] = None,
         unknown_faces = []
         attendance_results = []
         
-        # For each detected face
         for i, face_embedding in enumerate(face_embeddings):
             best_match = None
             best_similarity = -1
             
-            # Compare with all stored embeddings
             for stored_record in stored_embeddings:
                 stored_embedding = stored_record["embedding"]
                 
-                # Calculate cosine similarity
                 similarity = face_recognition.face_distance([np.array(stored_embedding)], np.array(face_embedding))
-                similarity = 1 - similarity[0]  # Convert distance to similarity (higher is better)
+                similarity = 1 - similarity[0]
                 
                 if similarity > best_similarity:
                     best_similarity = similarity
                     best_match = stored_record
             
-            # If we found a match above the threshold
             if best_match and best_similarity > threshold:
                 confidence = round(best_similarity * 100, 2)
                 reg_number = best_match["reg_number"]
                 
-                # Check if the student can mark attendance
                 attendance_check = can_mark_attendance(reg_number)
-                
-                # Determine attendance status message
                 attendance_status = "Attendance Taken" if attendance_check["can_mark"] else "Attendance Already Taken"
                 
                 recognized_student = {
@@ -175,13 +170,13 @@ def recognize_faces(image_base64: str, location: Optional[str] = None,
                 
                 recognized_students.append(recognized_student)
                 
-                # Only log attendance if allowed by the attendance logic
                 if attendance_check["can_mark"]:
                     attendance_result = log_attendance(
                         reg_number=reg_number,
                         method="facial recognition",
                         status="present",
-                        location=location
+                        location=location,
+                        course_code=course_code  # <-- Pass course_code here
                     )
                     attendance_results.append({
                         "reg_number": reg_number,
@@ -189,7 +184,6 @@ def recognize_faces(image_base64: str, location: Optional[str] = None,
                         "attendance_result": attendance_result
                     })
             else:
-                # This is an unknown face
                 unknown_faces.append({
                     "face_index": i,
                     "location": face_locations[i] if i < len(face_locations) else None,
@@ -198,7 +192,6 @@ def recognize_faces(image_base64: str, location: Optional[str] = None,
                     "message": "Unknown person - below recognition threshold"
                 })
         
-        # Prepare the response
         response = {
             "success": True,
             "total_faces_detected": len(face_embeddings),
@@ -209,7 +202,6 @@ def recognize_faces(image_base64: str, location: Optional[str] = None,
             "attendance_results": attendance_results
         }
         
-        # Set appropriate message based on results
         if len(recognized_students) > 0:
             response["message"] = f"Recognized {len(recognized_students)} student(s)"
             if len(unknown_faces) > 0:

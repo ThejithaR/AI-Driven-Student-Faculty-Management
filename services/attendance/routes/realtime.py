@@ -17,26 +17,28 @@ class ConnectionManager:
         self.active_connections.append(websocket)
 
     def disconnect(self, websocket: WebSocket):
-        self.active_connections.remove(websocket)
+        if websocket in self.active_connections:
+            self.active_connections.remove(websocket)
 
     async def send_personal_message(self, message: str, websocket: WebSocket):
         await websocket.send_text(message)
 
 manager = ConnectionManager()
 
-async def process_frame(image_base64: str, threshold: float = 0.6, location: str = None) -> Dict[str, Any]:
+async def process_frame(image_base64: str, threshold: float = 0.6,
+                        location: Optional[str] = None,
+                        course_code: Optional[str] = None) -> Dict[str, Any]:
     """
-    Process a frame using your existing recognize_faces function
+    Process a frame using the recognize_faces function
     """
     try:
-        # Use your existing recognize_faces function
         result = recognize_faces(
             image_base64=image_base64,
             location=location,
-            threshold=threshold
+            threshold=threshold,
+            course_code=course_code  
         )
         
-        # Ensure the response structure matches what the frontend expects
         return {
             "success": result.get("success", False),
             "message": result.get("message", ""),
@@ -64,20 +66,17 @@ async def process_frame(image_base64: str, threshold: float = 0.6, location: str
 @router.websocket("/face-recognition")
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
-    #await manager.connect(websocket)
     try:
         while True:
-            # Receive message from client
             data = await websocket.receive_json()
             
-            # Process the frame using your existing function
             result = await process_frame(
                 image_base64=data["image_base64"],
                 threshold=float(data.get("threshold", 0.6)),
-                location=data.get("location")
+                location=data.get("location"),
+                course_code=data.get("course_code")  # Extract course_code from request
             )
             
-            # Send result back to client
             await websocket.send_json(result)
             
     except WebSocketDisconnect:

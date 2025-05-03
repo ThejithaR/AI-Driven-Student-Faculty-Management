@@ -59,7 +59,7 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 @app.get("/", response_class=HTMLResponse)
 async def root():
     """Redirect to the face recognition UI"""
-    return RedirectResponse(url="/static/index.html")
+#    return RedirectResponse(url="/static/index.html")
  
 
 if __name__ == "__main__":
