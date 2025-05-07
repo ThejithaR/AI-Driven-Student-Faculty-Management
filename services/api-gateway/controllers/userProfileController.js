@@ -17,7 +17,12 @@ export const signUp = async (req, res) => {
 
     console.log("SignUp Response:", response);
 
-    res.status(200).json({ success: true, message: "SignUp request sent." , response: response });
+    if (response.status !== "error") {
+      res.status(200).json({ success: true, message: "SignIn request sent." , response: response });
+    }
+    else {
+      res.status(500).json({ success: false, message: response.message , response: response });
+    }
   } catch (error) {
     console.error("SignUp Error:", error);
     res.status(500).json({ success: false, message: "Internal server error" });
@@ -37,7 +42,12 @@ export const signIn = async (req, res) => {
 
     console.log("SignIn Response:", response);
 
-    res.status(200).json({ success: true, message: "SignIn request sent." , response: response });
+    if (response.status !== "error") {
+      res.status(200).json({ success: true, message: "SignIn request sent." , response: response });
+    }
+    else {
+      res.status(500).json({ success: false, message: response.message });
+    }
   } catch (error) {
     console.error("SignIn Error:", error);
     res.status(500).json({ success: false, message: "Internal server error" });
@@ -55,7 +65,12 @@ export const getUser = async (req, res) => {
 
     confirm.log("GetUser Response:", response);
 
-    res.status(200).json({ success: true, message: "GetUser request sent." , response: response });
+    if (response.status !== "error") {
+      res.status(200).json({ success: true, message: "Get user request sent." , response: response });
+    }
+    else {
+      res.status(500).json({ success: false, message: response.message , response: response });
+    }
   } catch (error) {
     console.error("GetUser Error:", error);
     res.status(500).json({ success: false, message: "Internal server error" });
@@ -74,7 +89,12 @@ export const updateProfile = async (req, res) => {
 
     console.log("UpdateProfile Response:", response);
 
-    res.status(200).json({ success: true, message: "UpdateProfile request sent." , response: response });
+    if (response.status !== "error") {
+      res.status(200).json({ success: true, message: "Update profile request sent." , response: response });
+    }
+    else {
+      res.status(500).json({ success: false, message: response.message , response: response });
+    }
   } catch (error) {
     console.error("UpdateProfile Error:", error);
     res.status(500).json({ success: false, message: "Internal server error" });
