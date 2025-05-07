@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 from typing import Dict, Any, Optional
-from db.supabase import get_attendance_today
+from db.supabase import get_attendance_today,get_course_details,get_student_course_attendance_today
 
 def can_mark_attendance(reg_number: str, attendance_window_hours: int = 2) -> Dict[str, Any]:
     """
@@ -85,7 +85,167 @@ def can_mark_attendance(reg_number: str, attendance_window_hours: int = 2) -> Di
         print(f"Error checking if attendance can be marked: {e}")
         print(traceback.format_exc())
         return {"can_mark": False, "message": f"Error: {str(e)}"}  
+
+def can_mark_attendance_for_course(
+    reg_number: str, 
+    course_code: str = None,
+    current_time: datetime = None
+) -> Dict[str, Any]:
+    """
+    Check if a student can mark attendance based on course schedule and previous attendance
     
+    Args:
+        reg_number: Student registration number
+        course_code: Course code to check attendance for
+        current_time: Current time (defaults to now if not provided)
+        
+    Returns:
+        Dictionary with result indicating if attendance can be marked and status
+    """
+    try:
+        if not current_time:
+            current_time = datetime.now()
+            
+        # If no course code provided, cannot check course-specific attendance
+        if not course_code:
+            return {
+                "can_mark": False, 
+                "status": None,
+                "message": "No course code provided"
+            }
+            
+        # Get today's day of week
+        day_of_week = current_time.strftime("%A")  # Returns Monday, Tuesday, etc.
+        
+        # Get course schedule for the given course code
+        course_details = get_course_details(course_code)
+        if not course_details["success"]:
+            return {
+                "can_mark": False,
+                "status": None,
+                "message": f"Error fetching course details: {course_details['message']}"
+            }
+            
+        # Check if course is scheduled for today
+        if course_details["data"]["day_of_week"] != day_of_week:
+            return {
+                "can_mark": False,
+                "status": None,
+                "message": f"Course {course_code} is not scheduled for today ({day_of_week})"
+            }
+            
+        # Parse course start and end times
+        start_time_str = course_details["data"]["start_time"]
+        end_time_str = course_details["data"]["end_time"]
+        
+        # Create datetime objects for today's course start and end times
+        course_date = current_time.date()
+        
+        # Handle time format (assuming HH:MM:SS format, but being flexible)
+        if isinstance(start_time_str, str):
+            if ":" in start_time_str:
+                # Handle different time formats
+                if start_time_str.count(":") == 1:  # HH:MM
+                    start_time = datetime.strptime(start_time_str, "%H:%M").time()
+                else:  # HH:MM:SS
+                    start_time = datetime.strptime(start_time_str, "%H:%M:%S").time()
+            else:
+                # If it's just a number of seconds or other format
+                print(f"Warning: Unexpected time format: {start_time_str}")
+                return {
+                    "can_mark": False,
+                    "status": None,
+                    "message": f"Invalid time format for course start time: {start_time_str}"
+                }
+        else:
+            # If it's already a time object
+            start_time = start_time_str
+            
+        # Same for end time
+        if isinstance(end_time_str, str):
+            if ":" in end_time_str:
+                if end_time_str.count(":") == 1:  # HH:MM
+                    end_time = datetime.strptime(end_time_str, "%H:%M").time()
+                else:  # HH:MM:SS
+                    end_time = datetime.strptime(end_time_str, "%H:%M:%S").time()
+            else:
+                print(f"Warning: Unexpected time format: {end_time_str}")
+                return {
+                    "can_mark": False,
+                    "status": None,
+                    "message": f"Invalid time format for course end time: {end_time_str}"
+                }
+        else:
+            end_time = end_time_str
+            
+        course_start = datetime.combine(course_date, start_time)
+        course_end = datetime.combine(course_date, end_time)
+        
+        # Check if student has already marked attendance for this course today
+        attendance_today = get_student_course_attendance_today(reg_number, course_code)
+        if not attendance_today["success"]:
+            return {
+                "can_mark": False,
+                "status": None,
+                "message": f"Error checking attendance: {attendance_today['message']}"
+            }
+            
+        if attendance_today["data"]:
+            # Student has already marked attendance for this course today
+            return {
+                "can_mark": False,
+                "status": None,
+                "message": "Attendance already marked for this course today",
+                "last_marked": attendance_today["data"][0]["timestamp"]
+            }
+            
+        # Define time windows
+        one_hour_before_start = course_start - timedelta(hours=1)
+        one_hour_after_start = course_start + timedelta(hours=1)
+        
+        # Determine attendance status based on current time
+        if one_hour_before_start <= current_time < course_start:
+            # Within one hour before course starts - mark as "present"
+            return {
+                "can_mark": True,
+                "status": "present",
+                "message": "Can mark attendance as present"
+            }
+        elif course_start <= current_time < one_hour_after_start:
+            # Within one hour after course starts - also mark as "present"
+            return {
+                "can_mark": True,
+                "status": "present",
+                "message": "Can mark attendance as present"
+            }
+        elif one_hour_after_start <= current_time < course_end:
+            # After one hour from start but before end - mark as "late"
+            return {
+                "can_mark": True,
+                "status": "late",
+                "message": "Can mark attendance as late"
+            }
+        else:
+            # Outside valid attendance windows
+            if current_time < one_hour_before_start:
+                return {
+                    "can_mark": False,
+                    "status": None,
+                    "message": f"Too early to mark attendance. Course starts at {start_time_str}"
+                }
+            else:
+                return {
+                    "can_mark": False,
+                    "status": None,
+                    "message": f"Too late to mark attendance. Course ended at {end_time_str}"
+                }
+    
+    except Exception as e:
+        import traceback
+        print(f"Error checking if attendance can be marked for course: {e}")
+        print(traceback.format_exc())
+        return {"can_mark": False, "status": None, "message": f"Error: {str(e)}"}
+
 def get_attendance_stats(reg_number: str, days: int = 30) -> Dict[str, Any]:
     """
     Get attendance statistics for a student

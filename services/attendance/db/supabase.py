@@ -124,15 +124,27 @@ def get_all_face_embeddings() -> List[Dict[str, Any]]:
     except Exception as e:
         print(f"Error getting face embeddings: {e}")
         return []
+    
+
 def log_attendance(
     reg_number: str,
-    method: str = "face_recognition",
+    method: str = "face_recognition",  # Keep your original default
     status: str = "present",
     location: str = None,
     course_code: str = None
 ) -> Dict[str, Any]:
     """
-    Log attendance for a student with optional course validation
+    Log attendance for a student with timestamp and status
+    
+    Args:
+        reg_number: Student registration number
+        method: Method of attendance recording
+        status: Status of attendance (present, late)
+        location: Optional location information
+        course_code: Optional course code
+        
+    Returns:
+        Dictionary with attendance result
     """
     try:
         # Validate course code if provided
@@ -144,9 +156,13 @@ def log_attendance(
                     "message": f"Course with code '{course_code}' does not exist."
                 }
 
+        # Get current timestamp
+        timestamp = datetime.now().isoformat()
+        
         # Prepare attendance data
         data = {
             "reg_number": reg_number,
+            "timestamp": timestamp,  # Add timestamp
             "method": method,
             "status": status
         }
@@ -156,18 +172,21 @@ def log_attendance(
         if course_code:
             data["course_code"] = course_code
 
-        # Insert attendance log
+        # Insert attendance log - using your original table name
         result = supabase.table("Attendance logs").insert(data).execute()
+        
+        if not result.data:
+            return {"success": False, "message": "Failed to log attendance"}
+            
         return {
             "success": True,
-            "message": "Attendance logged",
+            "message": f"Attendance marked as {status}",  # Dynamic message
             "data": result.data[0]
         }
 
     except Exception as e:
         print(f"Error logging attendance: {e}")
         return {"success": False, "message": str(e)}
-
     
 def get_attendance_today(reg_number: str) -> Dict[str, Any]:
     """
@@ -191,6 +210,59 @@ def get_attendance_today(reg_number: str) -> Dict[str, Any]:
     except Exception as e:
         print(f"Error getting attendance: {e}")
         return {"success": False, "message": str(e)}
+
+def get_student_course_attendance_today(reg_number: str, course_code: str) -> Dict[str, Any]:
+    """
+    Get today's attendance records for a student in a specific course
+    
+    Args:
+        reg_number: Student registration number
+        course_code: Course code
+    
+    Returns:
+        Dictionary with attendance records
+    """
+    try:
+        # Get today's date in ISO format (YYYY-MM-DD)
+        today = datetime.now().date().isoformat()
+        
+        # Query for today's attendance for this student and course
+        result = supabase.table("Attendance logs") \
+                .select("*") \
+                .eq("reg_number", reg_number) \
+                .eq("course_code", course_code) \
+                .gte("timestamp", f"{today}T00:00:00") \
+                .lte("timestamp", f"{today}T23:59:59") \
+                .execute()
+                
+        return {"success": True, "data": result.data}
+    except Exception as e:
+        print(f"Error getting student course attendance: {e}")
+        return {"success": False, "message": str(e), "data": None}
+
+def get_course_details(course_code: str) -> Dict[str, Any]:
+    """
+    Get details for a specific course
+    
+    Args:
+        course_code: The course code
+    
+    Returns:
+        Dictionary with course information
+    """
+    try:
+        result = supabase.table("Courses") \
+                .select("course_name, day_of_week, start_time, end_time") \
+                .eq("course_code", course_code) \
+                .execute()
+                
+        if not result.data:
+            return {"success": False, "message": f"Course {course_code} not found", "data": None}
+            
+        return {"success": True, "data": result.data[0]}
+    except Exception as e:
+        print(f"Error getting course details: {e}")
+        return {"success": False, "message": str(e), "data": None}
 
 def get_student_attendance_report(reg_number: str, 
                                  start_date: Optional[date] = None, 
@@ -228,6 +300,7 @@ def get_student_attendance_report(reg_number: str,
     except Exception as e:
         print(f"Error getting attendance report: {e}")
         return {"success": False, "message": str(e)}
+    
 def get_course_attendance_report(course_code: str, 
                                date_value: Optional[date] = None) -> Dict[str, Any]:
     """

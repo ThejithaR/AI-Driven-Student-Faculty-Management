@@ -71,6 +71,7 @@ class FaceEmbedding(BaseModel):
 class FaceRecognitionRequest(BaseModel):
     image_base64: str
     location: Optional[str] = None
+    course_code: str
 
 class RecognizedStudent(BaseModel):
     reg_number: str
