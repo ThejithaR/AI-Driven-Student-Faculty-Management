@@ -2,7 +2,8 @@ import axios from "axios";
 
 // Get the backend URL from environment variables
 //const backendUrl = import.meta.env.VITE_BACKEND_URL || "http://localhost:8000";
-const backendUrl = "http://localhost:8000";
+// const backendUrl = "http://localhost:8000";
+const backendUrl = "http://localhost:4000/api-gateway";
 
 /**
  * Register a student's face for facial recognition
@@ -86,7 +87,7 @@ export const markManualAttendance = async (
  */
 export const createFaceRecognitionWebSocket = (callbacks) => {
   const { onMessage, onOpen, onError, onClose, onLog } = callbacks;
-  const wsUrl = `${"ws://localhost:8000"}/realtime/face-recognition`;
+  const wsUrl = `${"ws://localhost:4000"}/realtime/face-recognition`;
 
   try {
     const ws = new WebSocket(wsUrl);

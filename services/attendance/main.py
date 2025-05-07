@@ -7,7 +7,12 @@ from fastapi.staticfiles import StaticFiles
 import uvicorn
 import logging
 import os
+import asyncio
 from dotenv import load_dotenv
+
+from rabbitMQ.attendance_consumer import attendance_consume  # import your consumer
+from rabbitMQ.realtime_consumer import consume_realtime
+
 
 from routes.attendance_routes import router as attendance_router
 #from routes.students_routes import router as student_router
@@ -64,6 +69,17 @@ async def root():
     """Redirect to the face recognition UI"""
     # return RedirectResponse(url="/static/index.html")
     pass
+
+# @app.on_event("startup")
+# async def start_consumer():
+#     loop = asyncio.get_event_loop()
+#     loop.create_task(consume())  # Run the consumer in background
+
+@app.on_event("startup")
+async def startup_event():
+    asyncio.create_task(attendance_consume())
+    asyncio.create_task(consume_realtime())
+
 
 if __name__ == "__main__":
     host = os.getenv("HOST", "127.0.0.1")
