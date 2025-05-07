@@ -3,7 +3,20 @@ import Webcam from "react-webcam";
 import { registerFace } from "../../context/attendaceApi";
 import { toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
-import { FaUpload, FaCamera, FaHome } from "react-icons/fa"; // Added icons for better UI
+import {
+  ChevronLeft,
+  Upload,
+  Camera,
+  UserCheck,
+  AlertTriangle,
+  Info,
+  Check,
+  X,
+  RotateCcw,
+  Image,
+  User,
+  Shield,
+} from "lucide-react";
 
 const RegisterFace = () => {
   const navigate = useNavigate();
@@ -12,14 +25,28 @@ const RegisterFace = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [regNumber, setRegNumber] = useState("");
   const [isDragging, setIsDragging] = useState(false);
+  const [captureCountdown, setCaptureCountdown] = useState(null);
   const webcamRef = useRef(null);
   const fileInputRef = useRef(null);
   const dropAreaRef = useRef(null);
 
-  // Camera capture function
-  const capture = useCallback(() => {
-    const imageSrc = webcamRef.current.getScreenshot();
-    setImageSrc(imageSrc);
+  // Camera capture function with countdown
+  const startCaptureCountdown = useCallback(() => {
+    setCaptureCountdown(3);
+
+    // Start countdown
+    const countdownInterval = setInterval(() => {
+      setCaptureCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(countdownInterval);
+          // Capture the image after countdown ends
+          const imageSrc = webcamRef.current.getScreenshot();
+          setImageSrc(imageSrc);
+          return null;
+        }
+        return prev - 1;
+      });
+    }, 1000);
   }, [webcamRef]);
 
   // Handle file upload
@@ -115,186 +142,366 @@ const RegisterFace = () => {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen px-6 sm:px-0 bg-gradient-to-r from-gray-200 via-gray-400 to-gray-600">
-      {/* Home button */}
-      <div
-        onClick={() => navigate("/attendance")}
-        className="absolute left-5 sm:left-20 top-5 flex items-center cursor-pointer bg-slate-800 p-2 rounded-full hover:bg-slate-700 transition-all"
-      >
-        <FaHome className="text-white w-6 h-6" />
-      </div>
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-900 to-slate-950 text-white">
+      {/* Header with back button */}
+      <header className="bg-gradient-to-r from-indigo-900 to-purple-900 p-4 sm:p-6 shadow-lg">
+        <div className="container mx-auto flex items-center">
+          <button
+            onClick={() => navigate("/attendance")}
+            className="mr-4 bg-indigo-700/50 hover:bg-indigo-700/80 p-2 rounded-full transition-all duration-300"
+            aria-label="Go back"
+          >
+            <ChevronLeft className="w-5 h-5 text-white" />
+          </button>
 
-      <div className="bg-slate-900 p-8 rounded-lg shadow-lg w-full max-w-4xl text-indigo-300 text-sm my-10">
-        <h2 className="text-3xl font-semibold text-white text-center mb-6">
-          Register Your Face
-        </h2>
+          <h1 className="text-2xl sm:text-3xl font-bold text-white flex items-center gap-2">
+            <UserCheck className="hidden sm:inline w-6 h-6" />
+            Face Registration
+          </h1>
+        </div>
+      </header>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {/* Left column: Form and Instructions */}
-          <div className="flex flex-col gap-4">
-            {/* Registration Number Input */}
-            <div className="mb-2">
-              <label className="block text-white mb-2">
-                Registration Number
-              </label>
-              <input
-                type="text"
-                value={regNumber}
-                onChange={(e) => setRegNumber(e.target.value)}
-                className="w-full p-2.5 rounded-lg bg-gray-700 text-white border border-gray-600 focus:border-indigo-500 focus:outline-none"
-                placeholder="Enter your registration number"
-                required
-              />
-            </div>
+      <main className="container mx-auto p-6 md:p-8">
+        <div className="max-w-7xl mx-auto bg-slate-800/60 border border-slate-700/50 rounded-2xl overflow-hidden shadow-xl">
+          <div className="p-6 md:p-8">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              {/* Left column: Image Capture Area */}
+              <div className="flex flex-col items-center">
+                <h2 className="text-xl font-bold mb-6 self-start flex items-center gap-2">
+                  <Camera className="text-indigo-400" />
+                  {mode === "camera"
+                    ? "Capture Your Face"
+                    : "Upload Your Photo"}
+                </h2>
 
-            {/* Mode selection */}
-            <div className="flex justify-center gap-4 mb-3">
-              <button
-                onClick={() => {
-                  setMode("upload");
-                  setImageSrc(null);
-                }}
-                className={`px-4 py-2 rounded-full flex items-center gap-2 ${
-                  mode === "upload" ? "bg-indigo-600 text-white" : "bg-gray-700"
-                }`}
-              >
-                <FaUpload /> Upload Image
-              </button>
-              <button
-                onClick={() => {
-                  setMode("camera");
-                  setImageSrc(null);
-                }}
-                className={`px-4 py-2 rounded-full flex items-center gap-2 ${
-                  mode === "camera" ? "bg-indigo-600 text-white" : "bg-gray-700"
-                }`}
-              >
-                <FaCamera /> Use Camera
-              </button>
-            </div>
-
-            {/* Instructions */}
-            <div className="bg-[#333A5C] p-4 rounded-lg mt-2">
-              <h3 className="text-white font-medium mb-2">Instructions:</h3>
-              <ul className="list-disc pl-5 text-indigo-200 text-sm space-y-2">
-                <li>Make sure your face is clearly visible and well-lit</li>
-                <li>Remove glasses, hats, or anything covering your face</li>
-                <li>Only one face should be visible in the image</li>
-                <li>Look directly at the camera for best results</li>
-                {mode === "upload" && (
-                  <li>You can drag and drop your image into the upload area</li>
-                )}
-              </ul>
-            </div>
-
-            {/* Submit button */}
-            <button
-              onClick={handleSubmit}
-              disabled={!imageSrc || !regNumber || isSubmitting}
-              className={`w-full py-3 mt-4 rounded-full bg-gradient-to-r from-indigo-500 to-indigo-900 text-white font-medium ${
-                !imageSrc || !regNumber || isSubmitting
-                  ? "opacity-50 cursor-not-allowed"
-                  : "hover:shadow-lg hover:from-indigo-600 hover:to-indigo-800 transition-all"
-              }`}
-            >
-              {isSubmitting ? "Registering..." : "Register Face"}
-            </button>
-          </div>
-
-          {/* Right column: Image capture/upload area */}
-          <div className="flex flex-col items-center gap-4">
-            {mode === "camera" ? (
-              <>
-                <div className="relative w-full aspect-square max-h-80 sm:max-h-full overflow-hidden rounded-lg">
-                  {!imageSrc ? (
-                    <Webcam
-                      audio={false}
-                      ref={webcamRef}
-                      screenshotFormat="image/jpeg"
-                      videoConstraints={videoConstraints}
-                      className="rounded-lg w-full h-full object-cover"
-                    />
-                  ) : (
-                    <img
-                      src={imageSrc}
-                      alt="Captured"
-                      className="rounded-lg w-full h-full object-cover border-2 border-green-400"
-                    />
-                  )}
-                </div>
-                <div className="flex gap-4 mt-2">
+                {/* Mode selection */}
+                <div className="flex w-full bg-slate-900/50 p-1 rounded-xl mb-6">
                   <button
-                    onClick={imageSrc ? resetImage : capture}
-                    className="px-6 py-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors"
+                    onClick={() => {
+                      setMode("upload");
+                      setImageSrc(null);
+                    }}
+                    className={`flex-1 py-2.5 rounded-lg flex items-center justify-center gap-2 transition-all ${
+                      mode === "upload"
+                        ? "bg-indigo-600 text-white shadow-lg"
+                        : "text-slate-400 hover:text-white"
+                    }`}
                   >
-                    {imageSrc ? "Retake Photo" : "Capture"}
+                    <Upload className="w-4 h-4" />
+                    <span>Upload</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      setMode("camera");
+                      setImageSrc(null);
+                    }}
+                    className={`flex-1 py-2.5 rounded-lg flex items-center justify-center gap-2 transition-all ${
+                      mode === "camera"
+                        ? "bg-indigo-600 text-white shadow-lg"
+                        : "text-slate-400 hover:text-white"
+                    }`}
+                  >
+                    <Camera className="w-4 h-4" />
+                    <span>Camera</span>
                   </button>
                 </div>
-              </>
-            ) : (
-              <>
-                <div
-                  ref={dropAreaRef}
-                  onDragEnter={handleDragEnter}
-                  onDragLeave={handleDragLeave}
-                  onDragOver={handleDragOver}
-                  onDrop={handleDrop}
-                  className={`w-full aspect-square max-h-80 sm:max-h-full 
-                    border-2 ${
-                      isDragging
-                        ? "border-indigo-500 bg-slate-800"
-                        : "border-dashed border-gray-500"
-                    } 
-                    rounded-lg flex flex-col items-center justify-center cursor-pointer transition-all
-                    hover:border-indigo-400 hover:bg-slate-800/50`}
-                  onClick={() => fileInputRef.current.click()}
-                >
-                  {imageSrc ? (
-                    <img
-                      src={imageSrc}
-                      alt="Uploaded"
-                      className="h-full w-full object-contain rounded-lg"
-                    />
+
+                {/* Image display area */}
+                <div className="w-full">
+                  {mode === "camera" ? (
+                    <div className="relative w-full aspect-square max-w-md mx-auto overflow-hidden rounded-2xl border-2 border-slate-700 shadow-lg bg-slate-900">
+                      {!imageSrc ? (
+                        <>
+                          <Webcam
+                            audio={false}
+                            ref={webcamRef}
+                            screenshotFormat="image/jpeg"
+                            videoConstraints={videoConstraints}
+                            className="rounded-xl w-full h-full object-cover"
+                          />
+
+                          {/* Face outline guide */}
+                          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                            <div className="w-3/5 h-3/4 border-4 border-dashed border-indigo-500/50 rounded-full"></div>
+                          </div>
+
+                          {/* Countdown overlay */}
+                          {captureCountdown && (
+                            <div className="absolute inset-0 flex items-center justify-center bg-black/70">
+                              <div className="text-7xl font-bold text-white animate-pulse">
+                                {captureCountdown}
+                              </div>
+                            </div>
+                          )}
+                        </>
+                      ) : (
+                        <div className="relative">
+                          <img
+                            src={imageSrc}
+                            alt="Captured"
+                            className="rounded-xl w-full h-full object-cover"
+                          />
+                          <div className="absolute top-3 right-3 bg-green-900/80 text-green-300 px-3 py-1 rounded-full text-sm font-medium flex items-center gap-1.5">
+                            <Check className="w-4 h-4" />
+                            Captured
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   ) : (
-                    <div className="text-center p-4">
-                      <FaUpload className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-                      <p className="text-gray-300 mb-2 font-medium">
-                        Click or drag image here
-                      </p>
-                      <p className="text-gray-500 text-xs">
-                        Supports: JPG, PNG, JPEG
-                      </p>
+                    <div
+                      ref={dropAreaRef}
+                      onDragEnter={handleDragEnter}
+                      onDragLeave={handleDragLeave}
+                      onDragOver={handleDragOver}
+                      onDrop={handleDrop}
+                      className={`w-full aspect-square max-w-md mx-auto 
+                        border-2 ${
+                          isDragging
+                            ? "border-indigo-500 bg-indigo-900/20"
+                            : imageSrc
+                            ? "border-indigo-600"
+                            : "border-dashed border-slate-700"
+                        } 
+                        rounded-2xl flex flex-col items-center justify-center cursor-pointer transition-all
+                        hover:border-indigo-400 bg-slate-900/70`}
+                      onClick={() => fileInputRef.current.click()}
+                    >
+                      {imageSrc ? (
+                        <div className="relative w-full h-full">
+                          <img
+                            src={imageSrc}
+                            alt="Uploaded"
+                            className="h-full w-full object-cover rounded-xl"
+                          />
+                          <div className="absolute top-3 right-3 bg-green-900/80 text-green-300 px-3 py-1 rounded-full text-sm font-medium flex items-center gap-1.5">
+                            <Check className="w-4 h-4" />
+                            Uploaded
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="text-center p-4">
+                          <div className="w-20 h-20 bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <Upload className="h-10 w-10 text-indigo-400" />
+                          </div>
+                          <p className="text-white mb-3 text-lg font-medium">
+                            Click or drag image here
+                          </p>
+                          <p className="text-slate-400 text-sm max-w-xs mx-auto">
+                            Upload a clear photo of your face for registration.
+                            The image should show your face clearly.
+                          </p>
+                          <p className="mt-4 text-indigo-300 text-xs">
+                            Supports: JPG, PNG, JPEG
+                          </p>
+                        </div>
+                      )}
                     </div>
                   )}
+
+                  {/* Camera/Upload controls */}
+                  <div className="flex justify-center gap-4 mt-6">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      ref={fileInputRef}
+                      onChange={handleFileChange}
+                      className="hidden"
+                    />
+
+                    {mode === "camera" ? (
+                      !imageSrc ? (
+                        <button
+                          onClick={startCaptureCountdown}
+                          disabled={captureCountdown !== null}
+                          className={`px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl flex items-center gap-2 transition-colors shadow-md ${
+                            captureCountdown !== null
+                              ? "opacity-50 cursor-not-allowed"
+                              : ""
+                          }`}
+                        >
+                          <Camera className="w-4 h-4" />
+                          <span>
+                            {captureCountdown
+                              ? `Capturing in ${captureCountdown}...`
+                              : "Capture Photo"}
+                          </span>
+                        </button>
+                      ) : (
+                        <button
+                          onClick={resetImage}
+                          className="px-5 py-2.5 bg-slate-700 hover:bg-slate-600 text-white rounded-xl flex items-center gap-2 transition-colors shadow-md"
+                        >
+                          <RotateCcw className="w-4 h-4" />
+                          <span>Retake Photo</span>
+                        </button>
+                      )
+                    ) : (
+                      <>
+                        <button
+                          onClick={() => fileInputRef.current.click()}
+                          className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl flex items-center gap-2 transition-colors shadow-md"
+                        >
+                          <Image className="w-4 h-4" />
+                          <span>
+                            {imageSrc ? "Change Image" : "Select Image"}
+                          </span>
+                        </button>
+
+                        {imageSrc && (
+                          <button
+                            onClick={resetImage}
+                            className="px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl flex items-center gap-2 transition-colors shadow-md"
+                          >
+                            <X className="w-4 h-4" />
+                            <span>Remove</span>
+                          </button>
+                        )}
+                      </>
+                    )}
+                  </div>
                 </div>
-                <div className="flex gap-4 mt-2">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    ref={fileInputRef}
-                    onChange={handleFileChange}
-                    className="hidden"
-                  />
-                  <button
-                    onClick={() => fileInputRef.current.click()}
-                    className="px-6 py-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors"
-                  >
-                    {imageSrc ? "Change Image" : "Select Image"}
-                  </button>
-                  {imageSrc && (
-                    <button
-                      onClick={resetImage}
-                      className="px-6 py-2 bg-red-600 text-white rounded-full hover:bg-red-700 transition-colors"
-                    >
-                      Remove
-                    </button>
+              </div>
+
+              {/* Right column: Registration form */}
+              <div className="flex flex-col">
+                <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
+                  <User className="text-indigo-400" />
+                  Registration Details
+                </h2>
+
+                <div className="mb-6">
+                  <label className="block text-sm font-medium text-indigo-300 mb-1.5">
+                    Registration Number <span className="text-red-400">*</span>
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={regNumber}
+                      onChange={(e) => setRegNumber(e.target.value)}
+                      className="w-full p-3 pl-10 rounded-xl bg-slate-900/70 text-white border border-slate-700 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none transition"
+                      placeholder="Enter your registration number"
+                      required
+                    />
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <User className="text-slate-500" />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Instructions */}
+                <div className="bg-indigo-900/30 border border-indigo-800/50 rounded-xl p-5 mb-6">
+                  <h3 className="text-white font-semibold mb-3 flex items-center gap-2">
+                    <Info className="text-indigo-400" />
+                    Registration Instructions
+                  </h3>
+                  <ul className="space-y-2.5 text-indigo-200 text-sm">
+                    <li className="flex items-start gap-2">
+                      <AlertTriangle className="w-4 h-4 text-amber-400 mt-0.5 flex-shrink-0" />
+                      <span>
+                        Make sure your face is clearly visible and well-lit
+                      </span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <AlertTriangle className="w-4 h-4 text-amber-400 mt-0.5 flex-shrink-0" />
+                      <span>
+                        Remove glasses, hats, or anything covering your face
+                      </span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <Check className="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" />
+                      <span>Only one face should be visible in the image</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <Check className="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" />
+                      <span>Look directly at the camera for best results</span>
+                    </li>
+                    {mode === "upload" && (
+                      <li className="flex items-start gap-2">
+                        <Info className="w-4 h-4 text-blue-400 mt-0.5 flex-shrink-0" />
+                        <span>
+                          You can drag and drop your image into the upload area
+                        </span>
+                      </li>
+                    )}
+                  </ul>
+                </div>
+
+                {/* Privacy Notice */}
+                <div className="bg-slate-900/50 p-4 rounded-xl border border-slate-800 mb-6">
+                  <div className="flex items-center gap-2 text-sm">
+                    <Shield className="text-indigo-400 w-5 h-5" />
+                    <p>
+                      Your face data will be securely stored and only used for
+                      attendance verification purposes.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Register button */}
+                <button
+                  onClick={handleSubmit}
+                  disabled={!imageSrc || !regNumber || isSubmitting}
+                  className={`w-full py-3.5 rounded-xl font-medium flex items-center justify-center gap-2 mt-auto shadow-md transition-all ${
+                    !imageSrc || !regNumber || isSubmitting
+                      ? "bg-indigo-700/60 cursor-not-allowed"
+                      : "bg-gradient-to-r from-indigo-600 to-indigo-800 hover:from-indigo-700 hover:to-indigo-900"
+                  }`}
+                >
+                  {isSubmitting ? (
+                    <>
+                      <svg
+                        className="animate-spin h-5 w-5 text-white"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        ></circle>
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        ></path>
+                      </svg>
+                      <span>Registering...</span>
+                    </>
+                  ) : (
+                    <>
+                      <UserCheck className="w-5 h-5" />
+                      <span>Register Your Face</span>
+                    </>
+                  )}
+                </button>
+
+                {/* Registration status */}
+                <div className="mt-4 text-center text-sm text-slate-400">
+                  {!imageSrc && !regNumber ? (
+                    <p>
+                      Provide your photo and registration number to continue
+                    </p>
+                  ) : !imageSrc ? (
+                    <p>Please select or capture your photo</p>
+                  ) : !regNumber ? (
+                    <p>Please enter your registration number</p>
+                  ) : (
+                    <p className="text-green-400 flex items-center justify-center gap-2">
+                      <Check className="w-4 h-4" />
+                      Ready to register
+                    </p>
                   )}
                 </div>
-              </>
-            )}
+              </div>
+            </div>
           </div>
         </div>
-      </div>
+      </main>
     </div>
   );
 };

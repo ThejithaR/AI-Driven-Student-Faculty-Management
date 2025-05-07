@@ -2,20 +2,26 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import {
-  FaHome,
-  FaVideo,
-  FaStop,
-  FaCheckCircle,
-  FaExclamationTriangle,
-  FaUniversity,
-  FaMapMarkerAlt,
-} from "react-icons/fa";
+  ChevronLeft,
+  Video,
+  VideoOff,
+  Check,
+  AlertTriangle,
+  BookOpen,
+  MapPin,
+  LayoutDashboard,
+  Activity,
+  ArrowRight,
+  Settings,
+  Clock,
+  Users,
+} from "lucide-react";
 
 // Constants
 const WS_URL = "ws://localhost:8000/realtime/face-recognition";
-const FRAME_INTERVAL = 500; // Process frames every 200ms
+const FRAME_INTERVAL = 500; // Process frames every 500ms
 
-const ImprovedRealTimeAttendance = () => {
+const RealTimeAttendance = () => {
   const navigate = useNavigate();
 
   // State management
@@ -25,6 +31,8 @@ const ImprovedRealTimeAttendance = () => {
   const [faceCascadeLoaded, setFaceCascadeLoaded] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState("disconnected");
   const [attendanceResults, setAttendanceResults] = useState([]);
+  const [wsLogs, setWsLogs] = useState([]);
+  const [activeTab, setActiveTab] = useState("attendance"); // 'attendance' or 'logs'
   const [stats, setStats] = useState({
     totalFaces: 0,
     recognized: 0,
@@ -45,6 +53,7 @@ const ImprovedRealTimeAttendance = () => {
   const faceCascadeRef = useRef(null);
   const frameCountRef = useRef(0);
   const sendIntervalRef = useRef(3); // Send every 3rd processed frame
+  const logsEndRef = useRef(null);
 
   // Handle form input changes
   const handleChange = (e) => {
@@ -54,6 +63,13 @@ const ImprovedRealTimeAttendance = () => {
       [name]: value,
     }));
   };
+
+  // Auto-scroll logs to bottom
+  useEffect(() => {
+    if (logsEndRef.current) {
+      logsEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [wsLogs]);
 
   // Load OpenCV.js
   useEffect(() => {
@@ -165,6 +181,9 @@ const ImprovedRealTimeAttendance = () => {
         setIsStreaming(true);
         setIsConnecting(false);
         toast.success("Camera started successfully");
+
+        // Add to logs
+        addLog("info", "Camera started successfully");
       };
     } catch (err) {
       console.error("Camera access error:", err);
@@ -172,16 +191,31 @@ const ImprovedRealTimeAttendance = () => {
 
       // Provide more specific error messages based on error type
       if (err.name === "NotAllowedError") {
-        toast.error(
-          "Camera access denied. Please allow camera permissions and try again."
-        );
+        const errorMsg =
+          "Camera access denied. Please allow camera permissions and try again.";
+        toast.error(errorMsg);
+        addLog("error", errorMsg);
       } else if (err.name === "NotFoundError") {
-        toast.error("No camera found. Please connect a camera and try again.");
+        const errorMsg =
+          "No camera found. Please connect a camera and try again.";
+        toast.error(errorMsg);
+        addLog("error", errorMsg);
       } else {
-        toast.error(`Camera error: ${err.message}`);
+        const errorMsg = `Camera error: ${err.message}`;
+        toast.error(errorMsg);
+        addLog("error", errorMsg);
       }
     }
   }, []);
+
+  // Add log entry
+  const addLog = (type, message, data = null) => {
+    const timestamp = new Date().toLocaleTimeString();
+    setWsLogs((prev) => [
+      { type, message, timestamp, data, id: Date.now() },
+      ...prev.slice(0, 99), // Keep only 100 most recent logs
+    ]);
+  };
 
   // Stop video stream
   const stopVideoStream = useCallback(() => {
@@ -212,6 +246,7 @@ const ImprovedRealTimeAttendance = () => {
     setIsStreaming(false);
     setConnectionStatus("disconnected");
 
+    addLog("info", "Camera and processing stopped");
     toast.info("Processing stopped");
   }, []);
 
@@ -258,16 +293,61 @@ const ImprovedRealTimeAttendance = () => {
           // Draw rectangles around faces
           for (let i = 0; i < faces.size(); ++i) {
             const face = faces.get(i);
-            ctx.strokeStyle = "#00ff00";
+
+            // Outer glow effect
+            ctx.shadowColor = "rgba(0, 255, 128, 0.5)";
+            ctx.shadowBlur = 15;
+
+            // Main rectangle
+            ctx.strokeStyle = "#00ff88";
             ctx.lineWidth = 2;
             ctx.strokeRect(face.x, face.y, face.width, face.height);
 
-            // Add confidence label
-            ctx.fillStyle = "rgba(0, 255, 0, 0.5)";
-            ctx.fillRect(face.x, face.y - 20, 70, 20);
-            ctx.fillStyle = "#000000";
-            ctx.font = "12px Arial";
-            ctx.fillText("Face", face.x + 5, face.y - 5);
+            // Reset shadow for text
+            ctx.shadowColor = "transparent";
+            ctx.shadowBlur = 0;
+
+            // Add detection label
+            const labelWidth = 60;
+            ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
+            ctx.fillRect(face.x, face.y - 25, labelWidth, 25);
+
+            // Add gradient border to label
+            const gradient = ctx.createLinearGradient(
+              face.x,
+              face.y - 25,
+              face.x + labelWidth,
+              face.y
+            );
+            gradient.addColorStop(0, "#00ff88");
+            gradient.addColorStop(1, "#0088ff");
+            ctx.strokeStyle = gradient;
+            ctx.lineWidth = 2;
+            ctx.strokeRect(face.x, face.y - 25, labelWidth, 25);
+
+            // Text
+            ctx.fillStyle = "#ffffff";
+            ctx.font = "bold 12px Inter, Arial";
+            ctx.fillText("FACE", face.x + 5, face.y - 10);
+
+            // Corner indicators (for aesthetic purposes)
+            const cornerSize = 6;
+
+            // Top-left corner
+            ctx.beginPath();
+            ctx.moveTo(face.x, face.y + cornerSize);
+            ctx.lineTo(face.x, face.y);
+            ctx.lineTo(face.x + cornerSize, face.y);
+            ctx.strokeStyle = "#00ff88";
+            ctx.stroke();
+
+            // Bottom-right corner
+            ctx.beginPath();
+            ctx.moveTo(face.x + face.width - cornerSize, face.y + face.height);
+            ctx.lineTo(face.x + face.width, face.y + face.height);
+            ctx.lineTo(face.x + face.width, face.y + face.height - cornerSize);
+            ctx.strokeStyle = "#00ff88";
+            ctx.stroke();
           }
 
           // Clean up resources
@@ -290,17 +370,24 @@ const ImprovedRealTimeAttendance = () => {
         const imageData = canvas.toDataURL("image/jpeg", 0.75);
         const base64Data = imageData.split(",")[1];
 
-        wsRef.current.send(
-          JSON.stringify({
-            image_base64: base64Data,
-            threshold: parseFloat(formData.threshold),
-            location: formData.location,
-            course_code: formData.course_code,
-          })
-        );
+        const payload = {
+          image_base64: base64Data,
+          threshold: parseFloat(formData.threshold),
+          location: formData.location,
+          course_code: formData.course_code,
+        };
+
+        wsRef.current.send(JSON.stringify(payload));
+        addLog("outgoing", "Sent frame for processing", {
+          threshold: payload.threshold,
+          courseCode: payload.course_code,
+          location: payload.location || "Not specified",
+          frameSize: Math.round((base64Data.length * 0.75) / 1024) + " KB",
+        });
       }
     } catch (err) {
       console.error("Error processing video frame:", err);
+      addLog("error", `Frame processing error: ${err.message}`);
     }
   }, [isStreaming, formData]);
 
@@ -312,18 +399,25 @@ const ImprovedRealTimeAttendance = () => {
     }
 
     setConnectionStatus("connecting");
+    addLog("info", "Connecting to recognition service...");
 
     wsRef.current = new WebSocket(WS_URL);
 
     wsRef.current.onopen = () => {
       setConnectionStatus("connected");
       toast.success("Connected to recognition service");
+      addLog("success", "Connected to recognition service");
       console.log("WebSocket connection established");
     };
 
     wsRef.current.onclose = (event) => {
       console.log("WebSocket closed:", event);
       setConnectionStatus("disconnected");
+      addLog(
+        "warning",
+        `WebSocket closed: ${event.reason || "No reason provided"}`,
+        { code: event.code }
+      );
 
       // Only show disconnect message if we were streaming
       if (isStreaming) {
@@ -335,6 +429,7 @@ const ImprovedRealTimeAttendance = () => {
     wsRef.current.onerror = (error) => {
       console.error("WebSocket error:", error);
       setConnectionStatus("error");
+      addLog("error", "WebSocket connection error");
       toast.error("Connection error. Please try again later.");
       stopVideoStream();
     };
@@ -342,6 +437,13 @@ const ImprovedRealTimeAttendance = () => {
     wsRef.current.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
+        addLog(
+          "incoming",
+          data.success
+            ? "Received recognition results"
+            : "Received error from server",
+          data
+        );
 
         if (!data.success) {
           console.warn("Backend processing error:", data.message);
@@ -377,6 +479,7 @@ const ImprovedRealTimeAttendance = () => {
         }
       } catch (error) {
         console.error("Error parsing WebSocket message:", error);
+        addLog("error", `Error parsing WebSocket message: ${error.message}`);
       }
     };
   }, [isStreaming, stopVideoStream]);
@@ -431,40 +534,105 @@ const ImprovedRealTimeAttendance = () => {
   const getConnectionStatusColor = () => {
     switch (connectionStatus) {
       case "connected":
-        return "bg-green-600";
+        return "bg-green-500";
       case "connecting":
-        return "bg-yellow-600";
+        return "bg-yellow-500";
       case "error":
-        return "bg-red-600";
+        return "bg-red-500";
       default:
-        return "bg-gray-600";
+        return "bg-gray-500";
     }
   };
 
-  return (
-    <div className="flex items-center justify-center min-h-screen px-4 py-6 sm:px-6 lg:px-8 bg-gradient-to-br from-slate-800 via-slate-900 to-slate-950">
-      {/* Navigation button */}
-      <button
-        onClick={() => navigate("/")}
-        className="fixed left-4 top-4 flex items-center justify-center bg-indigo-600 hover:bg-indigo-700 p-3 rounded-full shadow-lg transition-all z-10"
-        aria-label="Go home"
-      >
-        <FaHome className="text-white w-5 h-5" />
-      </button>
+  // Render log entry
+  const renderLogEntry = (log) => {
+    const getLogColor = () => {
+      switch (log.type) {
+        case "success":
+          return "border-l-green-500 bg-green-950/20";
+        case "error":
+          return "border-l-red-500 bg-red-950/20";
+        case "warning":
+          return "border-l-yellow-500 bg-yellow-950/20";
+        case "info":
+          return "border-l-blue-500 bg-blue-950/20";
+        case "incoming":
+          return "border-l-indigo-500 bg-indigo-950/20";
+        case "outgoing":
+          return "border-l-cyan-500 bg-cyan-950/20";
+        default:
+          return "border-l-gray-500 bg-gray-950/20";
+      }
+    };
 
-      <div className="bg-slate-800 rounded-2xl shadow-2xl w-full max-w-5xl text-gray-100 overflow-hidden">
-        {/* Header section */}
-        <div className="bg-gradient-to-r from-indigo-800 to-purple-800 p-6 flex items-center justify-between">
-          <h1 className="text-2xl sm:text-3xl font-bold text-white">
+    const getLogIcon = () => {
+      switch (log.type) {
+        case "success":
+          return <Check className="h-4 w-4 text-green-500" />;
+        case "error":
+          return <AlertTriangle className="h-4 w-4 text-red-500" />;
+        case "warning":
+          return <AlertTriangle className="h-4 w-4 text-yellow-500" />;
+        case "info":
+          return <Activity className="h-4 w-4 text-blue-500" />;
+        case "incoming":
+          return <ArrowRight className="h-4 w-4 text-indigo-500" />;
+        case "outgoing":
+          return <ArrowRight className="h-4 w-4 text-cyan-500 rotate-180" />;
+        default:
+          return <Activity className="h-4 w-4 text-gray-500" />;
+      }
+    };
+
+    return (
+      <div
+        key={log.id}
+        className={`border-l-4 p-3 mb-2 rounded-r ${getLogColor()} text-sm`}
+      >
+        <div className="flex items-center gap-2">
+          <span>{getLogIcon()}</span>
+          <span className="font-medium text-white/90">{log.message}</span>
+          <span className="ml-auto text-xs font-mono opacity-50">
+            {log.timestamp}
+          </span>
+        </div>
+
+        {log.data && (
+          <div className="mt-2 pl-6 text-xs opacity-75 font-mono overflow-x-auto">
+            {typeof log.data === "object" ? (
+              <pre>{JSON.stringify(log.data, null, 2)}</pre>
+            ) : (
+              log.data
+            )}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  return (
+    <div className="flex flex-col min-h-screen bg-gradient-to-br from-slate-900 via-slate-900 to-slate-950">
+      {/* Header with nav button */}
+      <header className="bg-gradient-to-r from-indigo-900 to-purple-900 p-4 sm:p-6 shadow-lg">
+        <div className="container mx-auto flex items-center">
+          <button
+            onClick={() => navigate("/attendance")}
+            className="mr-4 bg-indigo-700/50 hover:bg-indigo-700/80 p-2 rounded-full transition-all duration-300"
+            aria-label="Go back"
+          >
+            <ChevronLeft className="w-5 h-5 text-white" />
+          </button>
+
+          <h1 className="text-2xl sm:text-3xl font-bold text-white flex items-center gap-2">
+            <Video className="hidden sm:inline w-6 h-6" />
             Real-Time Attendance System
           </h1>
 
-          {/* Connection status indicator */}
-          <div className="flex items-center">
+          <div className="ml-auto flex items-center gap-2">
             <div
-              className={`w-3 h-3 rounded-full mr-2 ${getConnectionStatusColor()}`}
+              className={`w-3 h-3 rounded-full ${getConnectionStatusColor()} animate-pulse`}
             ></div>
-            <span className="text-sm hidden sm:inline-block">
+            <span className="hidden sm:inline-block text-sm font-medium">
               {connectionStatus === "connected"
                 ? "Connected"
                 : connectionStatus === "connecting"
@@ -475,12 +643,15 @@ const ImprovedRealTimeAttendance = () => {
             </span>
           </div>
         </div>
+      </header>
 
-        <div className="p-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Camera and controls section */}
-          <div className="space-y-5">
-            <div className="bg-slate-900 rounded-xl overflow-hidden shadow-inner border border-slate-700">
-              {/* Video container with aspect ratio */}
+      {/* Main content */}
+      <main className="flex-1 container mx-auto p-4 md:p-6 lg:p-8">
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+          {/* Left column - Video feed (3 columns on large screens) */}
+          <div className="lg:col-span-3 space-y-6">
+            {/* Video container */}
+            <div className="bg-slate-800/60 border border-slate-700/50 rounded-2xl overflow-hidden shadow-xl">
               <div className="relative pt-[75%]">
                 {" "}
                 {/* 4:3 aspect ratio */}
@@ -501,26 +672,46 @@ const ImprovedRealTimeAttendance = () => {
                 />
                 {/* Placeholder when not streaming */}
                 {!isStreaming && !isConnecting && (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-950 text-slate-400">
-                    <FaVideo className="w-12 h-12 mb-4 opacity-40" />
-                    <p>Camera feed will appear here</p>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-900/90 text-slate-400">
+                    <Video className="w-16 h-16 mb-6 text-indigo-400 opacity-75" />
+                    <p className="text-lg mb-2">Camera feed will appear here</p>
+
                     {!openCvLoaded && (
-                      <p className="mt-2 text-yellow-400">
-                        Loading OpenCV.js...
-                      </p>
+                      <div className="mt-4 bg-yellow-900/30 border border-yellow-800 text-yellow-300 px-4 py-2 rounded-lg flex items-center">
+                        <div className="mr-2 animate-spin h-4 w-4 border-2 border-yellow-500 border-t-transparent rounded-full"></div>
+                        <p>Loading OpenCV.js...</p>
+                      </div>
                     )}
+
                     {openCvLoaded && !faceCascadeLoaded && (
-                      <p className="mt-2 text-yellow-400">
-                        Loading face detection model...
-                      </p>
+                      <div className="mt-4 bg-blue-900/30 border border-blue-800 text-blue-300 px-4 py-2 rounded-lg flex items-center">
+                        <div className="mr-2 animate-spin h-4 w-4 border-2 border-blue-500 border-t-transparent rounded-full"></div>
+                        <p>Loading face detection model...</p>
+                      </div>
                     )}
                   </div>
                 )}
                 {/* Loading indicator */}
                 {isConnecting && (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-950">
-                    <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-indigo-500 mb-4"></div>
-                    <p className="text-indigo-300">Connecting to camera...</p>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-950/90">
+                    <div className="relative h-20 w-20 mb-6">
+                      <div className="absolute inset-0 rounded-full border-4 border-indigo-500/20"></div>
+                      <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-indigo-500 animate-spin"></div>
+                    </div>
+                    <p className="text-lg text-indigo-300">
+                      Connecting to camera...
+                    </p>
+                  </div>
+                )}
+                {/* Connection status overlay - only show when streaming */}
+                {isStreaming && (
+                  <div className="absolute top-3 right-3 bg-black/50 backdrop-blur-sm px-3 py-1.5 rounded-full flex items-center gap-2 text-xs font-medium">
+                    <div
+                      className={`w-2 h-2 rounded-full ${getConnectionStatusColor()}`}
+                    ></div>
+                    {connectionStatus === "connected"
+                      ? "Live"
+                      : "Connecting..."}
                   </div>
                 )}
               </div>
@@ -530,12 +721,12 @@ const ImprovedRealTimeAttendance = () => {
             <button
               onClick={toggleProcessing}
               disabled={isConnecting || !openCvLoaded}
-              className={`w-full py-4 rounded-xl flex items-center justify-center font-semibold text-lg shadow-lg transition duration-200 ${
+              className={`w-full py-4 rounded-xl flex items-center justify-center font-semibold text-lg shadow-lg transition-all ${
                 isConnecting || !openCvLoaded
-                  ? "bg-gray-600 cursor-not-allowed"
+                  ? "bg-gray-700/60 cursor-not-allowed"
                   : isStreaming
-                  ? "bg-red-600 hover:bg-red-700"
-                  : "bg-indigo-600 hover:bg-indigo-700"
+                  ? "bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800"
+                  : "bg-gradient-to-r from-indigo-600 to-indigo-800 hover:from-indigo-700 hover:to-indigo-900"
               }`}
             >
               {isConnecting ? (
@@ -564,29 +755,72 @@ const ImprovedRealTimeAttendance = () => {
                 </span>
               ) : !openCvLoaded ? (
                 <>
-                  <FaVideo className="mr-2" />
+                  <Video className="mr-2" />
                   Loading Face Detection...
                 </>
               ) : isStreaming ? (
                 <>
-                  <FaStop className="mr-2" />
+                  <VideoOff className="mr-2" />
                   Stop Attendance Tracking
                 </>
               ) : (
                 <>
-                  <FaVideo className="mr-2" />
+                  <Video className="mr-2" />
                   Start Attendance Tracking
                 </>
               )}
             </button>
+
+            {/* Stats panel */}
+            <div className="bg-slate-800/60 border border-slate-700/50 rounded-2xl p-5 shadow-md">
+              <h2 className="text-xl font-semibold mb-4 text-white flex items-center gap-2">
+                <Activity className="text-emerald-400" />
+                Recognition Statistics
+              </h2>
+
+              <div className="grid grid-cols-3 gap-4">
+                {/* Face count */}
+                <div className="bg-slate-800/80 rounded-xl p-4 border border-slate-700/50 transition-all hover:border-slate-600/50">
+                  <div className="mb-2 text-slate-400 text-sm flex items-center gap-1">
+                    <Users className="w-4 h-4" />
+                    <span>Total Faces</span>
+                  </div>
+                  <div className="text-3xl font-bold text-white">
+                    {stats.totalFaces}
+                  </div>
+                </div>
+
+                {/* Recognized count */}
+                <div className="bg-slate-800/80 rounded-xl p-4 border border-slate-700/50 transition-all hover:border-emerald-800/60">
+                  <div className="mb-2 text-emerald-400 text-sm flex items-center gap-1">
+                    <Check className="w-4 h-4" />
+                    <span>Recognized</span>
+                  </div>
+                  <div className="text-3xl font-bold text-emerald-400">
+                    {stats.recognized}
+                  </div>
+                </div>
+
+                {/* Unknown count */}
+                <div className="bg-slate-800/80 rounded-xl p-4 border border-slate-700/50 transition-all hover:border-amber-800/60">
+                  <div className="mb-2 text-amber-400 text-sm flex items-center gap-1">
+                    <AlertTriangle className="w-4 h-4" />
+                    <span>Unknown</span>
+                  </div>
+                  <div className="text-3xl font-bold text-amber-400">
+                    {stats.unknown}
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
 
-          {/* Controls and Results section */}
-          <div className="space-y-5">
+          {/* Right column - Controls and Results (2 columns on large screens) */}
+          <div className="lg:col-span-2 space-y-6">
             {/* Settings panel */}
-            <div className="bg-slate-900 rounded-xl p-5 border border-slate-700">
-              <h2 className="text-xl font-semibold mb-4 text-white flex items-center">
-                <FaUniversity className="mr-2 text-indigo-400" />
+            <div className="bg-slate-800/60 border border-slate-700/50 rounded-2xl p-5 shadow-md">
+              <h2 className="text-xl font-semibold mb-4 text-white flex items-center gap-2">
+                <Settings className="text-indigo-400" />
                 Session Settings
               </h2>
 
@@ -594,7 +828,7 @@ const ImprovedRealTimeAttendance = () => {
               <div className="mb-4">
                 <label
                   htmlFor="course_code"
-                  className="block text-sm font-medium text-indigo-300 mb-1"
+                  className="block text-sm font-medium text-indigo-300 mb-1.5"
                 >
                   Course Code <span className="text-red-400">*</span>
                 </label>
@@ -605,13 +839,13 @@ const ImprovedRealTimeAttendance = () => {
                     name="course_code"
                     value={formData.course_code}
                     onChange={handleChange}
-                    className="w-full p-3 pl-10 rounded-lg bg-slate-800 text-white border border-slate-600 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none transition"
+                    className="w-full p-3 pl-10 rounded-xl bg-slate-900/70 text-white border border-slate-700 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none transition"
                     placeholder="E.g. CS101"
                     required
                     disabled={isStreaming}
                   />
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <FaUniversity className="text-slate-400" />
+                    <BookOpen className="text-slate-500" />
                   </div>
                 </div>
               </div>
@@ -620,7 +854,7 @@ const ImprovedRealTimeAttendance = () => {
               <div className="mb-4">
                 <label
                   htmlFor="location"
-                  className="block text-sm font-medium text-indigo-300 mb-1"
+                  className="block text-sm font-medium text-indigo-300 mb-1.5"
                 >
                   Location (Optional)
                 </label>
@@ -631,12 +865,12 @@ const ImprovedRealTimeAttendance = () => {
                     name="location"
                     value={formData.location}
                     onChange={handleChange}
-                    className="w-full p-3 pl-10 rounded-lg bg-slate-800 text-white border border-slate-600 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none transition"
+                    className="w-full p-3 pl-10 rounded-xl bg-slate-900/70 text-white border border-slate-700 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none transition"
                     placeholder="E.g. Room 204"
                     disabled={isStreaming}
                   />
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <FaMapMarkerAlt className="text-slate-400" />
+                    <MapPin className="text-slate-500" />
                   </div>
                 </div>
               </div>
@@ -645,10 +879,13 @@ const ImprovedRealTimeAttendance = () => {
               <div>
                 <label
                   htmlFor="threshold"
-                  className="flex justify-between text-sm font-medium text-indigo-300 mb-1"
+                  className="flex justify-between text-sm font-medium text-indigo-300 mb-1.5"
                 >
-                  <span>Recognition Threshold</span>
-                  <span className="font-mono bg-slate-700 px-2 py-0.5 rounded text-xs">
+                  <span className="flex items-center gap-1.5">
+                    <Activity className="w-4 h-4" />
+                    Recognition Threshold
+                  </span>
+                  <span className="font-mono bg-slate-900 px-2 py-0.5 rounded text-xs">
                     {formData.threshold}
                   </span>
                 </label>
@@ -661,7 +898,7 @@ const ImprovedRealTimeAttendance = () => {
                   step="0.05"
                   value={formData.threshold}
                   onChange={handleChange}
-                  className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-indigo-500"
+                  className="w-full h-2 bg-slate-900 rounded-lg appearance-none cursor-pointer accent-indigo-500"
                   disabled={isStreaming}
                 />
                 <div className="flex justify-between text-xs text-slate-400 mt-1">
@@ -671,90 +908,116 @@ const ImprovedRealTimeAttendance = () => {
               </div>
             </div>
 
-            {/* Stats panel */}
-            <div className="bg-slate-900 rounded-xl p-5 border border-slate-700">
-              <h2 className="text-xl font-semibold mb-4 text-white flex items-center">
-                <FaCheckCircle className="mr-2 text-green-400" />
-                Recognition Stats
-              </h2>
-
-              <div className="grid grid-cols-3 gap-4 text-center">
-                {/* Face count */}
-                <div className="bg-slate-800 rounded-lg p-3">
-                  <div className="text-3xl font-bold text-white mb-1">
-                    {stats.totalFaces}
-                  </div>
-                  <div className="text-xs text-slate-400">Total Faces</div>
-                </div>
-
-                {/* Recognized count */}
-                <div className="bg-slate-800 rounded-lg p-3">
-                  <div className="text-3xl font-bold text-green-400 mb-1">
-                    {stats.recognized}
-                  </div>
-                  <div className="text-xs text-slate-400">Recognized</div>
-                </div>
-
-                {/* Unknown count */}
-                <div className="bg-slate-800 rounded-lg p-3">
-                  <div className="text-3xl font-bold text-yellow-400 mb-1">
-                    {stats.unknown}
-                  </div>
-                  <div className="text-xs text-slate-400">Unknown</div>
-                </div>
+            {/* Results tabs */}
+            <div className="bg-slate-800/60 border border-slate-700/50 rounded-2xl overflow-hidden shadow-md">
+              {/* Tab navigation */}
+              <div className="flex border-b border-slate-700">
+                <button
+                  onClick={() => setActiveTab("attendance")}
+                  className={`flex-1 py-3 px-4 text-sm font-medium flex items-center justify-center gap-1.5 transition-colors ${
+                    activeTab === "attendance"
+                      ? "bg-indigo-900/30 text-indigo-300 border-b-2 border-indigo-500"
+                      : "text-slate-400 hover:text-white hover:bg-slate-800/80"
+                  }`}
+                >
+                  <Check className="w-4 h-4" />
+                  Attendance Results
+                </button>
+                <button
+                  onClick={() => setActiveTab("logs")}
+                  className={`flex-1 py-3 px-4 text-sm font-medium flex items-center justify-center gap-1.5 transition-colors ${
+                    activeTab === "logs"
+                      ? "bg-indigo-900/30 text-indigo-300 border-b-2 border-indigo-500"
+                      : "text-slate-400 hover:text-white hover:bg-slate-800/80"
+                  }`}
+                >
+                  <LayoutDashboard className="w-4 h-4" />
+                  WebSocket Logs
+                </button>
               </div>
-            </div>
 
-            {/* Recent Results panel */}
-            <div className="bg-slate-900 rounded-xl p-5 border border-slate-700 max-h-64 overflow-hidden flex flex-col">
-              <h2 className="text-xl font-semibold mb-3 text-white flex items-center">
-                <FaCheckCircle className="mr-2 text-green-400" />
-                Recent Attendance
-              </h2>
+              {/* Tab content */}
+              <div className="p-4 max-h-80 overflow-hidden flex flex-col">
+                {/* Attendance Results Tab */}
+                {activeTab === "attendance" && (
+                  <div className="overflow-y-auto flex-grow pr-1">
+                    <h3 className="text-lg font-medium text-white mb-3 flex items-center gap-1.5">
+                      <Clock className="w-4 h-4 text-indigo-400" />
+                      Recent Attendance
+                    </h3>
 
-              {/* Results list with scrolling */}
-              <div className="overflow-y-auto flex-grow">
-                {attendanceResults.length > 0 ? (
-                  <ul className="space-y-2">
-                    {attendanceResults.map((result, index) => (
-                      <li
-                        key={index}
-                        className="p-3 bg-slate-800 rounded-lg text-sm flex justify-between items-center border-l-4 border-l-indigo-500"
-                      >
-                        <span className="font-medium text-white">
-                          {result.reg_number}
-                        </span>
-                        <span
-                          className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            result.status === "PRESENT"
-                              ? "bg-green-900 text-green-300"
-                              : result.status === "LATE"
-                              ? "bg-yellow-900 text-yellow-300"
-                              : "bg-red-900 text-red-300"
-                          }`}
-                        >
-                          {result.status}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <div className="flex flex-col items-center justify-center h-36 text-slate-400">
-                    <FaExclamationTriangle className="text-3xl mb-2 opacity-30" />
-                    <p className="text-center">
-                      {isStreaming
-                        ? "Waiting for recognition results..."
-                        : "Start processing to see attendance results"}
-                    </p>
+                    {attendanceResults.length > 0 ? (
+                      <ul className="space-y-2">
+                        {attendanceResults.map((result, index) => (
+                          <li
+                            key={index}
+                            className="p-3 bg-slate-800/80 rounded-lg text-sm flex justify-between items-center border-l-4 border-l-indigo-500 hover:bg-slate-800 transition-colors"
+                          >
+                            <span className="font-medium text-white">
+                              {result.reg_number}
+                            </span>
+                            <span
+                              className={`px-2.5 py-1 rounded-full text-xs font-medium flex items-center ${
+                                result.status === "PRESENT"
+                                  ? "bg-green-900/40 text-green-300 border border-green-700"
+                                  : result.status === "LATE"
+                                  ? "bg-yellow-900/40 text-yellow-300 border border-yellow-700"
+                                  : "bg-red-900/40 text-red-300 border border-red-700"
+                              }`}
+                            >
+                              {result.status === "PRESENT" && (
+                                <Check className="w-3 h-3 mr-1" />
+                              )}
+                              {result.status}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center h-36 text-slate-400">
+                        <AlertTriangle className="text-4xl mb-3 text-slate-500 opacity-30" />
+                        <p className="text-center">
+                          {isStreaming
+                            ? "Waiting for recognition results..."
+                            : "Start processing to see attendance results"}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* WebSocket Logs Tab */}
+                {activeTab === "logs" && (
+                  <div className="overflow-y-auto flex-grow pr-1">
+                    <h3 className="text-lg font-medium text-white mb-3 flex items-center gap-1.5">
+                      <Activity className="w-4 h-4 text-indigo-400" />
+                      WebSocket Communication Log
+                    </h3>
+
+                    {wsLogs.length > 0 ? (
+                      <div className="space-y-1">
+                        {wsLogs.map(renderLogEntry)}
+                        <div ref={logsEndRef} />
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center h-36 text-slate-400">
+                        <LayoutDashboard className="text-4xl mb-3 text-slate-500 opacity-30" />
+                        <p className="text-center">
+                          {isStreaming
+                            ? "Waiting for WebSocket activity..."
+                            : "Start processing to see WebSocket logs"}
+                        </p>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
             </div>
           </div>
         </div>
-      </div>
+      </main>
     </div>
   );
 };
 
-export default ImprovedRealTimeAttendance;
+export default RealTimeAttendance;
