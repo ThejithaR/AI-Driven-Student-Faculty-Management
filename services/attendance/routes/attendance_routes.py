@@ -74,6 +74,7 @@ async def mark_manual_attendance(request: ManualAttendanceRequest):
     )
 
 
+
 @router.post("/recognize", response_model=FaceRecognitionResponse)
 async def recognize_student_faces(request: FaceRecognitionRequest):
     """
@@ -102,7 +103,6 @@ async def recognize_student_faces(request: FaceRecognitionRequest):
         unknown_faces=result.get("unknown_faces", []),
         attendance_results=attendance_results
     )
-
 
 # Face registration endpoint
 @router.post("/register-face", response_model=ApiResponse)
@@ -203,55 +203,4 @@ async def get_student_report(request: AttendanceReportRequest):
         success=True,
         message=f"Retrieved attendance report for student {request.reg_number}",
         data=report
-    )
-@router.post("/report/course", response_model=ApiResponse)
-async def get_course_report(request: AttendanceReportRequest):
-    """
-    Get attendance report for a specific course on a specific date
-    """
-    if not request.course_code:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Course code is required"
-        )
-    
-    result = get_course_attendance_report(
-        course_code=request.course_code,
-        date_value=request.start_date  # Using start_date as the report date
-    )
-    
-    if not result["success"]:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=result["message"]
-        )
-    
-    # Process course attendance data
-    attendance_data = result["data"]
-    students_present = [record for record in attendance_data if record["status"] == AttendanceStatus.PRESENT]
-    students_late = [record for record in attendance_data if record["status"] == AttendanceStatus.LATE]
-    
-    # Get total enrolled students for the course
-    from db.supabase import supabase
-    enrollments = supabase.table("Enrollments") \
-                 .select("*") \
-                 .eq("course_code", request.course_code) \
-                 .execute()
-    
-    total_enrolled = len(enrollments.data) if enrollments.data else 0
-    
-    report = CourseAttendanceReport(
-        course_code=request.course_code,
-        date=request.start_date or date.today(),
-        total_enrolled=total_enrolled,
-        present=len(students_present),
-        late=len(students_late),
-        absent=total_enrolled - len(students_present) - len(students_late),
-        students=attendance_data  # Make sure this matches the schema
-    )
-    
-    return ApiResponse(
-        success=True,
-        message=f"Retrieved attendance report for course {request.course_code}",
-        data=report.dict()
     )

@@ -5,7 +5,7 @@ from fastapi.responses import JSONResponse
 import uvicorn
 import logging
 from routes.attendance_routes import router as attendance_router
-from routes.students_routes import router as student_router
+#from routes.students_routes import router as student_router
 from routes.realtime import router as realtime_router
 
 from fastapi.staticfiles import StaticFiles
@@ -46,7 +46,7 @@ async def global_exception_handler(request: Request, exc: Exception):
 
 # Include routers
 app.include_router(attendance_router)
-app.include_router(student_router)
+#app.include_router(student_router)
 app.include_router(realtime_router)
 
 # @app.get("/")
