@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from typing import List, Optional
 from datetime import date
 
+
 from pydantic import BaseModel, Field
 from models.schemas import (
     FaceRegisterRequest, 
@@ -27,14 +28,14 @@ from db.supabase import (
     get_course_attendance_report,
     get_attendance_today
 )
-from services.attendace_logic import can_mark_attendance
+from services.attendace_logic import can_mark_attendance,can_mark_attendance_for_course
 
 router = APIRouter(prefix="/attendance", tags=["attendance"])
 
 @router.post("/manual", response_model=AttendanceResponse)
 async def mark_manual_attendance(request: ManualAttendanceRequest):
     """
-    Manually mark attendance for a student
+    Manually mark attendance for a student based on course schedule
     """
     # Verify student exists
     student = get_student_profile(request.reg_number)
@@ -44,8 +45,23 @@ async def mark_manual_attendance(request: ManualAttendanceRequest):
             detail=student["message"]
         )
     
-    # Check if student can mark attendance
-    attendance_check = can_mark_attendance(request.reg_number)
+    # Check if student can mark attendance based on course schedule
+    if request.course_code:
+        # Use the new course-based attendance logic
+        attendance_check = can_mark_attendance_for_course(
+            reg_number=request.reg_number,
+            course_code=request.course_code
+        )
+        
+        # Use the status from attendance check if not explicitly provided
+        # This ensures consistent rules when the status isn't manually specified
+        if attendance_check["can_mark"] and not request.status and attendance_check.get("status"):
+            request.status = attendance_check["status"]
+    else:
+        # Fallback to original attendance logic if no course provided
+        attendance_check = can_mark_attendance(request.reg_number)
+    
+    # If attendance cannot be marked, return with explanation
     if not attendance_check["can_mark"]:
         return AttendanceResponse(
             success=False,
@@ -56,9 +72,9 @@ async def mark_manual_attendance(request: ManualAttendanceRequest):
     result = log_attendance(
         reg_number=request.reg_number,
         method=AttendanceMethod.MANUAL,
-        status=request.status,
+        status=request.status or "present",  # Default to present if not specified
         location=request.location,
-        course_code=request.course_code  # <-- Include course_code
+        course_code=request.course_code
     )
     
     if not result["success"]:
@@ -67,20 +83,22 @@ async def mark_manual_attendance(request: ManualAttendanceRequest):
             detail=result["message"]
         )
     
+    # Include attendance status in the success message
+    status_message = request.status or "present"
+    
     return AttendanceResponse(
         success=True,
-        message=f"Attendance marked as {request.status} for student {request.reg_number}",
+        message=f"Attendance marked as {status_message} for student {request.reg_number}" +
+                (f" in course {request.course_code}" if request.course_code else ""),
         data=AttendanceRecord(**result["data"])
     )
-
-
 
 @router.post("/recognize", response_model=FaceRecognitionResponse)
 async def recognize_student_faces(request: FaceRecognitionRequest):
     """
     Recognize students in an image and mark attendance if applicable
     """
-    result = recognize_faces(request.image_base64, request.location)
+    result = recognize_faces(request.image_base64, request.location, request.course_code)
     
     # Convert raw attendance results to proper model objects
     attendance_results = []
