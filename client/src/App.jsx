@@ -10,7 +10,7 @@ import Attendance from "./pages/attendance";
 import Chatbot from "./pages/chatbot";
 import ScheduleManager from "./pages/scheduleManager";
 import Notifications from "./pages/notifications";
-import CourseEnrollments from "./pages/courseEnrollments";
+import CourseEnrollments from "./pages/CoursePage";
 
 const App = () => {
   return (
