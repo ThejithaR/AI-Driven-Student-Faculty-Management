@@ -1,17 +1,20 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, HTMLResponse
+from fastapi.responses import RedirectResponse
+from fastapi.staticfiles import StaticFiles
 
 import uvicorn
 import logging
+import os
+from dotenv import load_dotenv
+
 from routes.attendance_routes import router as attendance_router
 #from routes.students_routes import router as student_router
 from routes.realtime import router as realtime_router
 
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import HTMLResponse
-from fastapi.responses import RedirectResponse
-
+# Load environment variables from .env
+load_dotenv()
 
 # Configure logging
 logging.basicConfig(
@@ -54,16 +57,20 @@ app.include_router(realtime_router)
 #     return {"status": "ok", "message": "Smart Attendance System API is running"}
 
 # Mount static files directory
-app.mount("/static", StaticFiles(directory="static"), name="static")
+# app.mount("/static", StaticFiles(directory="static"), name="static")
 
 @app.get("/", response_class=HTMLResponse)
 async def root():
     """Redirect to the face recognition UI"""
-#    return RedirectResponse(url="/static/index.html")
- 
+    # return RedirectResponse(url="/static/index.html")
+    pass
 
 if __name__ == "__main__":
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+    host = os.getenv("HOST", "127.0.0.1")
+    port = int(os.getenv("PORT", 4000))
+    reload = os.getenv("RELOAD", "False").lower() == "true"
+    
+    uvicorn.run("main:app", host=host, port=port, reload=reload)
 
 # http://localhost:8000/
 # uvicorn main:app --reload

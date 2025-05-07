@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 
 // Constants
-const WS_URL = "ws://localhost:8000/realtime/face-recognition";
+const WS_URL = "ws://localhost:4000/realtime/face-recognition";
 const FRAME_INTERVAL = 500; // Process frames every 500ms
 
 const RealTimeAttendance = () => {
