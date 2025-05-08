@@ -11,3 +11,4 @@ def read_root():
 
 # Include routers
 app.include_router(exam_router, prefix="/api")
+app.include_router(assignment_router, prefix="/api")
