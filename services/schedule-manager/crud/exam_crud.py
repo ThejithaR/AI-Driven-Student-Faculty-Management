@@ -236,6 +236,7 @@ def update_exam(exam_id: str, update_data: dict):
         return None
     
     except APIError as e:
+        print("APIError during update:", e)
         # Check if the foreign key error is due to 'scheduled_by'
         if "scheduled_by" in str(e) and "faculty_member_profiles" in str(e):
             raise HTTPException(
