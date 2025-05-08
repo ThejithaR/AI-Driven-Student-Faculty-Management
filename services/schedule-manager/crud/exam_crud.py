@@ -63,44 +63,116 @@ def check_exam_clash(course_code: str, exam_date: str, start_time: str, end_time
     exams = response.data
     print("Exams on same day:", exams)
 
-    # If no exams on that date, no clash
     if not exams:
         return False
 
-    # Filter exams with matching course_code
-    relevant_exams = [exam for exam in exams if exam["course_code"] == course_code]
-
-    # If no relevant exams, no clash
-    if not relevant_exams:
-        return False
-
-    # Convert input times to Timestamp objects and ensure they are naive (no timezone)
     input_start = to_timestamp(start_time)
     input_end = to_timestamp(end_time)
 
-    # Remove timezone info from input times (if any)
+    # Ensure naive datetimes
     if input_start.tzinfo is not None:
         input_start = input_start.replace(tzinfo=None)
     if input_end.tzinfo is not None:
         input_end = input_end.replace(tzinfo=None)
 
-    print("Input start:", input_start)
-    print("Input end:", input_end)
-
-    for exam in relevant_exams:
+    for exam in exams:
         exam_start = to_timestamp(exam["start_time"])
         exam_end = to_timestamp(exam["end_time"])
-
-        # Remove timezone info from exam times (if any)
+       
         if exam_start.tzinfo is not None:
             exam_start = exam_start.replace(tzinfo=None)
         if exam_end.tzinfo is not None:
             exam_end = exam_end.replace(tzinfo=None)
 
-        # Check if the times overlap (naive comparison)
-        if input_start < exam_end and exam_start < input_end:
-            print("Clash with exam:", exam)
-            return True
+        # Check for overlapping times
+        if input_start <= exam_end and exam_start <= input_end:
+            print("Found overlapping exam:", exam)
+            
+            if exam["course_code"] == course_code:
+                # Same course, same time = direct clash
+                print("Clash: Same course")
+                return True
+
+            # Get students for the existing exam course
+            existing_students_resp = supabase.table("Enrollments").select("reg_number").eq("course_code", exam["course_code"]).execute()
+            existing_students = {s["reg_number"] for s in existing_students_resp.data}
+
+            # Get students for the new exam course
+            new_course_students_resp = supabase.table("Enrollments").select("reg_number").eq("course_code", course_code).execute()
+            new_students = {s["reg_number"] for s in new_course_students_resp.data}
+
+            # Check for intersection
+            if existing_students & new_students:
+                print("Clash: Students enrolled in both courses")
+                return True
+
+    return False
+
+def update_check_exam_clash(exam_id: str, course_code: str, exam_date: str, start_time: str, end_time: str):
+    print("Checking update clashes for:", exam_date)
+
+    # Fetch all exams on the given exam_date, excluding the one being updated
+    response = (
+        supabase.table("Exams")
+        .select("*")
+        .eq("exam_date", exam_date)
+        .neq("exam_id", exam_id)
+        .execute()
+    )
+    exams = response.data
+    print("Exams on same day (excluding self):", exams)
+
+    if not exams:
+        return False
+
+    input_start = to_timestamp(start_time)
+    input_end = to_timestamp(end_time)
+
+    # Ensure naive datetimes
+    if input_start.tzinfo is not None:
+        input_start = input_start.replace(tzinfo=None)
+    if input_end.tzinfo is not None:
+        input_end = input_end.replace(tzinfo=None)
+
+    for exam in exams:
+        exam_start = to_timestamp(exam["start_time"])
+        exam_end = to_timestamp(exam["end_time"])
+
+        if exam_start.tzinfo is not None:
+            exam_start = exam_start.replace(tzinfo=None)
+        if exam_end.tzinfo is not None:
+            exam_end = exam_end.replace(tzinfo=None)
+
+        # Check for overlapping times
+        if input_start <= exam_end and exam_start <= input_end:
+            print("Found overlapping exam:", exam)
+
+            if exam["course_code"] == course_code:
+                print("Clash: Same course")
+                return True
+
+            # Get students for the existing exam course
+            existing_students_resp = (
+                supabase.table("Enrollments")
+                .select("reg_number")
+                .eq("course_code", exam["course_code"])
+                .execute()
+            )
+            existing_students = {s["reg_number"] for s in existing_students_resp.data}
+
+            # Get students for the new exam course
+            new_course_students_resp = (
+                supabase.table("Enrollments")
+                .select("reg_number")
+                .eq("course_code", course_code)
+                .execute()
+            )
+            new_students = {s["reg_number"] for s in new_course_students_resp.data}
+
+            # Check for intersection
+            if existing_students & new_students:
+                print("Clash: Students enrolled in both courses")
+                return True
 
     return False
 
