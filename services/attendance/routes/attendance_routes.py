@@ -222,3 +222,31 @@ async def get_student_report(request: AttendanceReportRequest):
         message=f"Retrieved attendance report for student {request.reg_number}",
         data=report
     )
+
+@router.post("/report/course", response_model=ApiResponse)
+async def get_course_report(request: AttendanceReportRequest):
+    """
+    Get attendance report for a specific course on a specific date
+    """
+    if not request.course_code:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Course code is required"
+        )
+    
+    result = get_course_attendance_report(
+        course_code=request.course_code,
+        date_value=request.start_date
+    )
+    
+    if not result["success"]:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=result["message"]
+        )
+    
+    return ApiResponse(
+        success=True,
+        message=f"Retrieved attendance report for course {request.course_code}",
+        data=result["data"]
+    )
