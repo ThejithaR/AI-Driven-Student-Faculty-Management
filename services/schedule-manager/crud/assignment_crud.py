@@ -108,7 +108,21 @@ def update_assignment(assignment_id: str, update_data: dict):
             )
 
 def delete_assignment(assignment_id: str):
-    response = supabase.table("Assignments").delete().eq("assignment_id", assignment_id).execute()
-    if response.data:
-        return response.data
-    return None
+    try:
+        response = supabase.table("Assignments").delete().eq("assignment_id", assignment_id).execute()
+        if response.data:
+            return response.data
+        return None
+
+    except APIError as e:
+        print("APIError:", e)
+        if 'invalid input syntax for type uuid' in str(e):
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid UUID format for assignment_id."
+            )
+        else:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Unexpected API error: {e.message}"
+            )
