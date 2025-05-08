@@ -1,4 +1,5 @@
 from datetime import datetime, date
+import datetime
 from fastapi import HTTPException
 from uuid import UUID
 from database import supabase
@@ -9,13 +10,34 @@ def serialize_assignment_data(data: dict) -> dict:
     Convert datetime, date, and UUID objects to serializable formats.
     """
     for key, value in data.items():
-        if isinstance(value, datetime):
+        if isinstance(value, datetime.time):
             data[key] = value.isoformat()
-        elif isinstance(value, date):
+        elif isinstance(value, datetime.date):
             data[key] = value.isoformat()
         elif isinstance(value, UUID):
             data[key] = str(value)
     return data
+
+# def serialize_exam_data(data: dict) -> dict:
+#     """
+#     Convert time, date, and UUID objects to serializable formats.
+#     """
+#     for key, value in data.items():
+#         # If the value is a time object
+#         if isinstance(value, datetime.time):
+#             # Convert time object to a string (ISO format)
+#             data[key] = value.isoformat()
+        
+#         # If the value is a date object
+#         elif isinstance(value, datetime.date):
+#             # Convert date object to a string (ISO format)
+#             data[key] = value.isoformat()
+        
+#         # If the value is a UUID object
+#         elif isinstance(value, UUID):
+#             data[key] = str(value)  # Convert UUID to string
+    
+#     return data
 
 def create_assignment(data: dict):
     try:
@@ -44,8 +66,8 @@ def create_assignment(data: dict):
             )
         else:
             raise HTTPException(
-                status_code=400,
-                detail=f"Database constraint error: {e.message}"
+                status_code=500,
+                detail=f"Unexpected API error: {e.message}"
             )
 
 def get_assignment_by_id(assignment_id: str):

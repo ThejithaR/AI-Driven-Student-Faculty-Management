@@ -2,6 +2,7 @@ from fastapi import FastAPI
 
 # Import your routers
 from routers.exam_routes import router as exam_router
+from routers.assignment_routes import router as assignment_router
 
 app = FastAPI()
 
