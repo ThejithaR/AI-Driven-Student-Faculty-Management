@@ -14,7 +14,7 @@ router = APIRouter()
 @router.post("/exams/schedule")
 def schedule_exam(exam: ExamCreateRequest):
     clash = check_exam_clash(
-        group_id=exam.group_id,
+        course_code=exam.course_code,
         exam_date=exam.exam_date,
         start_time=exam.start_time,
         end_time=exam.end_time
@@ -24,6 +24,7 @@ def schedule_exam(exam: ExamCreateRequest):
         raise HTTPException(status_code=400, detail="Exam clash detected! Group already has an exam at that time.")
     
     data = exam.dict()
+    print(data)
     create_exam(data)
 
     return {"message": "Exam scheduled successfully."}

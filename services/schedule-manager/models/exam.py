@@ -7,7 +7,7 @@ class ExamCreateRequest(BaseModel):
     title: str
     start_time: time
     end_time: time
-    group_id: UUID
+    course_code: str
     exam_date: date
     notified: bool = False 
     description: str

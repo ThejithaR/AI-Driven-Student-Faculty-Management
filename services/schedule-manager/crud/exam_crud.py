@@ -55,11 +55,24 @@ def to_timestamp(value):
     return None
 
 
-def check_exam_clash(group_id: str, exam_date: str, start_time: str, end_time: str):
+def check_exam_clash(course_code: str, exam_date: str, start_time: str, end_time: str):
     print("Checking clashes for:", exam_date)
-    response = supabase.table("Exams").select("*").eq("group_id", group_id).eq("exam_date", exam_date).execute()
+    
+    # Fetch all exams on the given exam_date
+    response = supabase.table("Exams").select("*").eq("exam_date", exam_date).execute()
     exams = response.data
     print("Exams on same day:", exams)
+
+    # If no exams on that date, no clash
+    if not exams:
+        return False
+
+    # Filter exams with matching course_code
+    relevant_exams = [exam for exam in exams if exam["course_code"] == course_code]
+
+    # If no relevant exams, no clash
+    if not relevant_exams:
+        return False
 
     # Convert input times to Timestamp objects and ensure they are naive (no timezone)
     input_start = to_timestamp(start_time)
@@ -74,7 +87,7 @@ def check_exam_clash(group_id: str, exam_date: str, start_time: str, end_time: s
     print("Input start:", input_start)
     print("Input end:", input_end)
 
-    for exam in exams:
+    for exam in relevant_exams:
         exam_start = to_timestamp(exam["start_time"])
         exam_end = to_timestamp(exam["end_time"])
 
@@ -92,10 +105,11 @@ def check_exam_clash(group_id: str, exam_date: str, start_time: str, end_time: s
     return False
 
 
+
 def create_exam(data: dict):
     try:
         updated_data = serialize_exam_data(data)
-
+        print("Serialized data:", updated_data)
         response = supabase.table("Exams").insert(updated_data).execute()
         
         if response.data:
@@ -104,6 +118,9 @@ def create_exam(data: dict):
         return None
 
     except APIError as e:
+        print("APIError:", e)
+        print("APIError message:", e.message)
+        
         # Foreign key violation for 'scheduled_by'
         if "scheduled_by" in str(e) and "faculty_member_profiles" in str(e):
             raise HTTPException(
@@ -114,14 +131,10 @@ def create_exam(data: dict):
         # Foreign key violation for 'course_code'
         elif "course_code" in str(e) and "Courses" in str(e):
             raise HTTPException(
-                status_code=400,
+                status_code=401,
                 detail="Invalid course_code: The provided course does not exist."
             )
-        elif "group_id" in str(e):
-            raise HTTPException(
-                status_code=400,
-                detail="Invalid group_id: The provided group does not exist or is not linked correctly."
-            )
+        
         else:
             raise HTTPException(
                 status_code=400,
