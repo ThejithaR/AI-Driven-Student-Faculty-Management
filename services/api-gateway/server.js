@@ -28,7 +28,7 @@ app.get("/", (req, res) => {
 app.use("/api-gateway/user-profile", userProfileRouter);
 app.use("/api-gateway/attendance", attendenceRouter);
 app.use("/api-gateway/chatbot", chatbotRouter);
-app.use("/api-gateway/course-enrollment", courseEnrollmentRouter);
+app.use("/api-gateway/courses", courseEnrollmentRouter);
 app.use("/api-gateway/schedule-manager", sheduleManagerRouter);
 app.use("/api-gateway/notification", notificationRouter);
 
