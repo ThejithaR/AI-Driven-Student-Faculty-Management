@@ -36,6 +36,8 @@ async def handle_attendance_message(action: str, payload: dict):
         return await handle_today_attendance(payload)
     elif action == "getStudentReport":
         return await handle_student_report(payload)
+    elif action == "getCourseReport":
+        return await handle_course_report(payload)
     else:
         return {"error": f"Unknown action: {action}"}
 
@@ -152,4 +154,37 @@ async def handle_student_report(data):
         success=True,
         message=f"Retrieved attendance report for student {reg_number}",
         data=report
+    )
+
+
+async def handle_course_report(data):
+    """
+    Handle generating attendance report for a specific course on a specific date.
+    :param data: AttendanceReportRequest object or dict-like with course_code and start_date
+    :return: ApiResponse object
+    """
+    course_code = data.course_code if hasattr(data, "course_code") else data.get("course_code")
+    date_value = data.start_date if hasattr(data, "start_date") else data.get("start_date")
+
+    if not course_code:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Course code is required"
+        )
+
+    result = get_course_attendance_report(
+        course_code=course_code,
+        date_value=date_value
+    )
+
+    if not result["success"]:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=result["message"]
+        )
+
+    return ApiResponse(
+        success=True,
+        message=f"Retrieved attendance report for course {course_code}",
+        data=result["data"]
     )
