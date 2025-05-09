@@ -71,17 +71,28 @@ exports.getUserMetadata = async (req, res) => {
   const user_uid = req.params.user_uid;
 
   try {
-    const result = await pool.query(
+    // Try faculty first
+    let result = await pool.query(
       'SELECT reg_number FROM faculty_member_profiles WHERE "UID" = $1',
       [user_uid]
     );
-    const rows = result.rows;
 
-    if (rows.length === 0) {
+    let reg_number = result.rows.length > 0 ? result.rows[0].reg_number : null;
+
+    // If not found in faculty, try student
+    if (!reg_number) {
+      result = await pool.query(
+        'SELECT reg_number FROM "Student details" WHERE "UID" = $1',
+        [user_uid]
+      );
+      reg_number = result.rows.length > 0 ? result.rows[0].reg_number : null;
+    }
+
+    // If still not found
+    if (!reg_number) {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    const reg_number = rows[0].reg_number;
     const firstLetter = reg_number.charAt(0).toUpperCase();
     let user_role = '';
 
@@ -103,3 +114,4 @@ exports.getUserMetadata = async (req, res) => {
     res.status(500).json({ error: 'Internal server error' });
   }
 };
+
