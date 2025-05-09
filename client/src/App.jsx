@@ -5,14 +5,14 @@ import React from "react";
 import Home from "./pages/Home";
 import UserProfiles from "./pages/user_profiles/UserProfiles";
 import Login from "./pages/user_profiles/Login";
-import EditProfile from "./pages/user_profiles/EditProfile";
-import ResetPassword from "./pages/user_profiles/ResetPassword";
+// import EditProfile from "./pages/user_profiles/EditProfile";
+// import ResetPassword from "./pages/user_profiles/ResetPassword";
 import Attendance from "./pages/attendance/attendance";
 import Chatbot from "./pages/chatbot";
 import ScheduleManager from "./pages/scheduleManager";
 import Notifications from "./pages/notifications";
 
-import CourseEnrollments from "./pages/CoursePage";
+import Courses from "./pages/courses/CoursePage";
 
 //import CourseEnrollments from "./pages/courseEnrollments";
 import RegisterFace from "./pages/attendance/registerFace";
@@ -38,8 +38,8 @@ const App = () => {
         <Route path="/" element={<Home />} />
         <Route path="/user-profiles" element={<UserProfiles />} />
         <Route path="/login" element={<Login />} />
-        <Route path="/edit-profile" element={<EditProfile />} />
-        <Route path="/reset-password" element={<ResetPassword />} />
+        {/* <Route path="/edit-profile" element={<EditProfile />} />
+        <Route path="/reset-password" element={<ResetPassword />} /> */}
         <Route path="/attendance" element={<Attendance />} />
         <Route path="/register-face" element={<RegisterFace />} />
         <Route path="/manual-attendance" element={<ManualAttendance />} />
@@ -47,7 +47,7 @@ const App = () => {
         <Route path="/chatbot" element={<Chatbot />} />
         <Route path="/schedule-manager" element={<ScheduleManager />} />
         <Route path="/notifications" element={<Notifications />} />
-        <Route path="/course-enrollments" element={<CourseEnrollments />} />
+        <Route path="/course-enrollments" element={<Courses />} />
       </Routes>
     </>
   );
