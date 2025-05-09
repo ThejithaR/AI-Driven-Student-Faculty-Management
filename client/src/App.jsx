@@ -11,7 +11,10 @@ import Attendance from "./pages/attendance/attendance";
 import Chatbot from "./pages/chatbot";
 import ScheduleManager from "./pages/scheduleManager";
 import Notifications from "./pages/notifications";
-import CourseEnrollments from "./pages/courseEnrollments";
+
+import CourseEnrollments from "./pages/CoursePage";
+
+//import CourseEnrollments from "./pages/courseEnrollments";
 import RegisterFace from "./pages/attendance/registerFace";
 import ManualAttendance from "./pages/attendance/manualAttendance";
 import RealtimeAttendance from "./pages/attendance/realtimeAttendance";

@@ -1,27 +1,21 @@
-import React, { useContext, useState } from 'react'
-import { assets } from '../../assets/assets'
-import { useNavigate } from 'react-router-dom'
-//import { AppContext } from '../../context/AppContext'
-import { toast } from 'react-toastify'
-import axios from 'axios'
-// import { set } from 'mongoose'
+import React, { useState } from 'react';
+import { assets } from '../../assets/assets';
+import { useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
+import axios from 'axios';
 
 const Login = () => {
-  const [state,setState] = useState('Sign Up')
-  const [username,setUsername] = useState('')
-  const [email,setEmail] = useState('')
-  const [password,setPassword] = useState('')
-  const [confirmPassword , setConfirmPassword] = useState('')
+  const [state, setState] = useState('Sign Up');
+  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordStrength, setPasswordStrength] = useState(0);
   const [errorMessage, setErrorMessage] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-//   const [showPopup, setShowPopup] = useState(false);
-  const navigate = useNavigate()
-
-  //const {setIsLoggedin,getUserData} = useContext(AppContext)
+  const navigate = useNavigate();
   const backendUrl = import.meta.env.VITE_BACKEND_URL;
-
 
   const validatePassword = (password) => {
     let strength = 0;
@@ -46,8 +40,8 @@ const Login = () => {
   const handlePasswordChange = (e) => {
     const newPassword = e.target.value;
     setPassword(newPassword);
-    if(state === 'Sign Up'){
-        setPasswordStrength(validatePassword(newPassword));
+    if (state === 'Sign Up') {
+      setPasswordStrength(validatePassword(newPassword));
     }
   };
 
@@ -61,65 +55,54 @@ const Login = () => {
     return colors[passwordStrength - 2];
   };
 
-
   const onSubmitHandler = async (e) => {
     try {
       e.preventDefault();
       setErrorMessage('');
 
-      console.log(backendUrl);
-  
       if (state === 'Sign Up') {
         if (!isPasswordValid(password)) {
           setErrorMessage('Password must be at least 8 characters long and include an uppercase letter, a lowercase letter, and a special character.');
           toast.error(errorMessage);
           return;
         }
-  
+
         if (password !== confirmPassword) {
           setErrorMessage('Passwords do not match.');
           toast.error(errorMessage);
           return;
         }
-  
+
         if (username.length < 8) {
           setErrorMessage('Username needs to be at least 8 characters long');
           toast.error(errorMessage);
           return;
         }
-  
+
         axios.defaults.withCredentials = true;
         const { data } = await axios.post(backendUrl + '/api-gateway/user-profile/sign-up/', {
           username,
           email,
           password,
         });
-  
+
         if (data.success) {
-          // Save the token to localStorage after successful registration
-          localStorage.setItem('token', data.token);  
+          localStorage.setItem('token', data.token);
           console.log(data);
-        //   setIsLoggedin(true);
-        //   await getUserData();  // Fetch user data after registration
-          //navigate('/');
         } else {
           toast.error(data.message);
         }
       } else {
         axios.defaults.withCredentials = true;
-        console.log("SignIn Request:", { email, password});
-        console.log(backendUrl + '/api-gateway/user-profile/sign-in/');
         const { data } = await axios.post(backendUrl + '/api-gateway/user-profile/sign-in/', {
           email,
           password,
         });
-  
+
         if (data.success) {
-          // Save the token to localStorage after successful login
-          localStorage.setItem('token', data.token);  
-        //   setIsLoggedin(true);
-        //   await getUserData();  // Fetch user data after login
-          //navigate('/');
+          localStorage.setItem('uid', data.id);
+          localStorage.setItem('email', data.email);
+          localStorage.setItem('role', data.role);
           console.log(data);
         } else {
           toast.error(data.message);
@@ -129,105 +112,149 @@ const Login = () => {
       toast.error(err.message);
     }
   };
-  
-
-
-
 
   return (
-    <div className='flex items-center justify-center min-h-screen px-6 sm:px-0 bg-gradient-to-r from-gray-200 via-gray-400 to-gray-600'>
-        <img
-                onClick={() => navigate('/')}
-                src={assets.home}
-                alt="Logo"
-                className="absolute left-5 sm:left-20 top-5 w-10 sm:w-10 cursor-pointer"
-              />
-        <div className='bg-slate-900 p-10 rounded-lg shadow-lg w-full sm:w-96 text-indigo-300 text-sm' >
-            <h2 className='text-3xl font-semibold text-white text-center mb-3' >{state === 'Sign Up'?'Create  account':'Login' }</h2>
-            <p className='text-center text-sm mb-6'>{state === 'Sign Up'?'Create Your account!':'Login to your account!' }</p>
-        
-
-            <form onSubmit={onSubmitHandler}>
-                <div className='mb-4 flex items-center gap-3 w-full px-5 py-2.5 rounded-full bg-[#333A5C]'>
-                <img src={assets.mail_icon} alt="" />
-                <input value={email} onChange={(e)=>setEmail(e.target.value)} className='bg-transparent outline-none' type="email" placeholder='Enter Your Email'required />
-                </div>
-
-                {state === 'Sign Up' && (
-                                
-                    <div className='mb-4 flex items-center gap-3 w-full px-5 py-2.5 rounded-full bg-[#333A5C]'>
-                        <img src={assets.person_icon} alt="" />
-                        <input value={username} onChange={(e)=>setUsername(e.target.value)} className='bg-transparent outline-none' type="text" placeholder='Enter User Name'required />
-                    </div>
-                )}
-                {state === 'Sign Up'? (
-                    <div>
-                        <div className='mb-4'>
-                            <div className='flex items-center gap-3 w-full px-5 py-2.5 rounded-full bg-[#333A5C]'>
-                                <img src={assets.lock_icon} alt='' />
-                                <input value={password} onChange={handlePasswordChange} className='bg-transparent outline-none flex-1' type={showPassword?'text':'password'} placeholder='Password' required />
-                                <img src={showPassword?assets.show:assets.hide} alt='' className='cursor-pointer w-4 h-4' onClick={() => setShowPassword(!showPassword)} />
-                            </div>
-                            <div className='mt-2 h-2 rounded-full w-full bg-gray-300'>
-                                <div className={`h-2 rounded-full ${getStrengthColor()}`} style={{ width: `${(passwordStrength / 6) * 100}%` }}></div>
-                            </div>
-                            <p className='text-xs mt-1 text-gray-400'>{getStrengthLabel()}</p>
-                        </div>
-
-                        <div className={`mb-4 flex items-center gap-3 w-full px-5 py-2.5 rounded-full bg-[#333A5C] ${confirmPassword && confirmPassword !== password ? 'border border-red-500' : ''}`}>
-                            <img src={assets.lock_icon} alt='' />
-                            <input
-                                value={confirmPassword}
-                                onChange={(e) => setConfirmPassword(e.target.value)}
-                                className={`bg-transparent outline-none flex-1`}
-                                type={showConfirmPassword?'text':'password'}
-                                placeholder='Confirm password'
-                                required
-                            />
-                            <img src={showConfirmPassword?assets.show:assets.hide} alt='' className='cursor-pointer w-4 h-4' onClick={() => setShowConfirmPassword(!showConfirmPassword)} />
-                        </div>
-                        {confirmPassword && confirmPassword !== password && <p className='text-xs text-red-500 text-left'>Passwords do not match</p>}
-                        <br></br>
-                    </div>
-                ):(
-                    <div>
-                        <div className='mb-4'>
-                            <div className='flex items-center gap-3 w-full px-5 py-2.5 rounded-full bg-[#333A5C]'>
-                                <img src={assets.lock_icon} alt='' />
-                                <input value={password} onChange={handlePasswordChange} className='bg-transparent outline-none flex-1' type={showPassword?'text':'password'} placeholder='Password' required />
-                                <img src={showPassword?assets.show:assets.hide} alt='' className='cursor-pointer w-4 h-4' onClick={() => setShowPassword(!showPassword)} />
-                            </div>
-                        </div>
-                    </div>
-                )}
-                
-                    
-                
-                
-                <p onClick={()=>navigate("/reset-password")} className='mb-4 text-indigo-500 cursor-pointer'>Forgot password?</p>
-                
-                <button className='w-full py-2.5 rounded-full bg-gradient-to-r from-indigo-500 to-indigo-900  cursor-pointer text-white font-medium'>{state}</button>
-            
-            </form>
-            {state === 'Sign Up' ? (
-                  <p className='text-gray-400 text-center text-xs mt-4'>Already have an account?{' '}
-                  <span onClick={()=>setState("Login")} className='text-blue-400 cursor-pointer underline'>
-                      Login here
-                  </span>
-              </p>
-            ):(
-                <p className='text-gray-400 text-center text-xs mt-4'>Don't have an account?{' '}
-                    <span onClick={()=>setState('Sign Up')} className='text-blue-400 cursor-pointer underline'>
-                        Signup
-                    </span>
-                 </p>
-
-            ) }
-          
-            
+    <div className="min-h-screen flex items-center justify-center bg-gray-900">
+      <img
+        onClick={() => navigate('/')}
+        src={assets.home}
+        alt="Logo"
+        className="absolute left-5 top-5 w-10 cursor-pointer hover:opacity-80 transition-opacity"
+      />
+      
+      <div className="w-full max-w-md p-8 space-y-6 bg-gray-800 rounded-2xl shadow-xl">
+        <div className="space-y-2 text-center">
+          <h2 className="text-3xl font-bold text-gray-100">
+            {state === 'Sign Up' ? 'Create Account' : 'Welcome Back'}
+          </h2>
+          <p className="text-gray-400">
+            {state === 'Sign Up' ? 'Create your account to get started!' : 'Login to your account'}
+          </p>
         </div>
-    </div>
-  )
-}
 
-export default Login
+        <form onSubmit={onSubmitHandler} className="space-y-4">
+          <div className="space-y-4">
+            <div className="relative">
+              <div className="flex items-center gap-3 w-full px-4 py-3 rounded-lg bg-gray-700 focus-within:ring-2 focus-within:ring-indigo-500 transition">
+                <img src={assets.mail_icon} alt="" className="w-5 h-5 opacity-60" />
+                <input
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full bg-transparent outline-none text-gray-100 placeholder-gray-400"
+                  type="email"
+                  placeholder="Enter your email"
+                  required
+                />
+              </div>
+            </div>
+
+            {state === 'Sign Up' && (
+              <div className="relative">
+                <div className="flex items-center gap-3 w-full px-4 py-3 rounded-lg bg-gray-700 focus-within:ring-2 focus-within:ring-indigo-500 transition">
+                  <img src={assets.person_icon} alt="" className="w-5 h-5 opacity-60" />
+                  <input
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    className="w-full bg-transparent outline-none text-gray-100 placeholder-gray-400"
+                    type="text"
+                    placeholder="Enter username"
+                    required
+                  />
+                </div>
+              </div>
+            )}
+
+            <div className="relative">
+              <div className="flex items-center gap-3 w-full px-4 py-3 rounded-lg bg-gray-700 focus-within:ring-2 focus-within:ring-indigo-500 transition">
+                <img src={assets.lock_icon} alt="" className="w-5 h-5 opacity-60" />
+                <input
+                  value={password}
+                  onChange={handlePasswordChange}
+                  className="w-full bg-transparent outline-none text-gray-100 placeholder-gray-400"
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="Password"
+                  required
+                />
+                <img
+                  src={showPassword ? assets.show : assets.hide}
+                  alt=""
+                  className="w-5 h-5 cursor-pointer opacity-60 hover:opacity-100 transition"
+                  onClick={() => setShowPassword(!showPassword)}
+                />
+              </div>
+              {state === 'Sign Up' && (
+                <div className="mt-2">
+                  <div className="h-1 w-full bg-gray-600 rounded-full overflow-hidden">
+                    <div
+                      className={`h-full ${getStrengthColor()} transition-all duration-300`}
+                      style={{ width: `${(passwordStrength / 6) * 100}%` }}
+                    ></div>
+                  </div>
+                  <p className="text-xs mt-1 text-gray-400">{getStrengthLabel()}</p>
+                </div>
+              )}
+            </div>
+
+            {state === 'Sign Up' && (
+              <div className="relative">
+                <div className="flex items-center gap-3 w-full px-4 py-3 rounded-lg bg-gray-700 focus-within:ring-2 focus-within:ring-indigo-500 transition">
+                  <img src={assets.lock_icon} alt="" className="w-5 h-5 opacity-60" />
+                  <input
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    className="w-full bg-transparent outline-none text-gray-100 placeholder-gray-400"
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    placeholder="Confirm password"
+                    required
+                  />
+                  <img
+                    src={showConfirmPassword ? assets.show : assets.hide}
+                    alt=""
+                    className="w-5 h-5 cursor-pointer opacity-60 hover:opacity-100 transition"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  />
+                </div>
+                {confirmPassword && confirmPassword !== password && (
+                  <p className="text-xs mt-1 text-red-400">Passwords do not match</p>
+                )}
+              </div>
+            )}
+          </div>
+
+          {state === 'Login' && (
+            <div className="text-right">
+              <button
+                type="button"
+                onClick={() => navigate("/reset-password")}
+                className="text-sm text-indigo-400 hover:text-indigo-300 transition"
+              >
+                Forgot password?
+              </button>
+            </div>
+          )}
+
+          <button
+            type="submit"
+            className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium transition duration-200 transform hover:scale-[1.02]"
+          >
+            {state}
+          </button>
+        </form>
+
+        <div className="text-center">
+          <p className="text-sm text-gray-400">
+            {state === 'Sign Up' ? 'Already have an account?' : "Don't have an account?"}{' '}
+            <button
+              onClick={() => setState(state === 'Sign Up' ? 'Login' : 'Sign Up')}
+              className="text-indigo-400 hover:text-indigo-300 transition"
+            >
+              {state === 'Sign Up' ? 'Login here' : 'Sign up'}
+            </button>
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default Login;
