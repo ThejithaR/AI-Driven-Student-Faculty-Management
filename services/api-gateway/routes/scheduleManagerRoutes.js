@@ -1,10 +1,18 @@
 // attendanceRoutes.js
 import express from "express";
-const sheduleManagerRouter = express.Router();
+import { scheduleAssignment, getAssignment, getAllAssignments, updateAssignment, deleteAssignment } from "../controllers/scheduleManagerController.js";
+const scheduleManagerRouter = express.Router();
 
 // define routes
-sheduleManagerRouter.get("/", (req, res) => {
+scheduleManagerRouter.get("/", (req, res) => {
   res.send("Schedule manager Home");
 });
 
-export default sheduleManagerRouter;   // <-- IMPORTANT
+scheduleManagerRouter.post("/schedule-assignment", scheduleAssignment);
+scheduleManagerRouter.post("/get-assignment", getAssignment);
+scheduleManagerRouter.get("/get-all-assignments", getAllAssignments);
+scheduleManagerRouter.put("/update-assignment", updateAssignment);
+scheduleManagerRouter.delete("/delete-assignment", deleteAssignment);
+
+
+export default scheduleManagerRouter;   // <-- IMPORTANT
