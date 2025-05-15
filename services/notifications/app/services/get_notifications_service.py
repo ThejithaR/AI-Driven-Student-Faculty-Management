@@ -1,4 +1,5 @@
-from app.db import supabase
+#from app.db import supabase
+from app.supabase.supabaseConfig import supabase
 
 async def get_notifications(data: dict):
     user_id = data.get("userId")
@@ -9,11 +10,15 @@ async def get_notifications(data: dict):
 
     try:
         # Fetch notifications for the user
-        response = supabase.table("Notifications").select("*").eq("Recipient_id", user_id).execute()
+        response = supabase.table("Notifications").select("*").eq("recipient_id", user_id).execute()
 
-        if response.error:
-            print(f"❌ Error fetching notifications: {response.error}")
-            return {"status": "error", "message": "Failed to fetch notifications"}
+        print(f"Response: {response}")
+
+        # if response.error:
+        #     print(f"❌ Error fetching notifications: {response.error}")
+        #     return {"status": "error", "message": "Failed to fetch notifications"}
+        if not response.data:
+            return {"status": "error", "message": "No notifications found for this user"}
 
         notifications = response.data
         print(f"✅ Notifications retrieved: {notifications}")

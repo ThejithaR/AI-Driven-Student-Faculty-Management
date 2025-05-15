@@ -30,7 +30,7 @@ app.use("/api-gateway/attendance", attendenceRouter);
 app.use("/api-gateway/chatbot", chatbotRouter);
 app.use("/api-gateway/course-enrollment", courseEnrollmentRouter);
 app.use("/api-gateway/schedule-manager", sheduleManagerRouter);
-app.use("/api-gateway/notification", notificationRouter);
+app.use("/api-gateway/notifications", notificationRouter);
 
 
 app.listen(port, () => {

@@ -6,6 +6,7 @@ const QUEUE_NAME = "notifications_queue";
 export const getNotifications = async (req, res) => {
   const { userId } = req.params;
 
+  console.log("params", req.params);
   if (!userId) {
     return res.status(400).json({ success: false, message: "User ID is required" });
   }
@@ -27,6 +28,8 @@ export const getNotifications = async (req, res) => {
 export const getNotificationDetails = async (req, res) => {
   const { notificationId } = req.params;
 
+  console.log("params", req.params);
+
   if (!notificationId) {
     return res.status(400).json({ success: false, message: "Notification ID is required" });
   }
@@ -45,17 +48,23 @@ export const getNotificationDetails = async (req, res) => {
 };
 
 // Add a notification (admin only)
-export const addNotification = async (req, res) => {
-  const { Title, Message, Priority, Course_Code, Sent_By } = req.body;
+export const addCourseNotification = async (req, res) => {
+  const { 
+    course_code, 
+    sender_id, 
+    title, 
+    message } = req.body;
 
-  if (!Title || !Message || !Priority || !Course_Code || !Sent_By) {
+  console.log("body", req.body);
+
+  if (!title || !message || !course_code || !sender_id) {
     return res.status(400).json({ success: false, message: "All fields are required: Title, Message, Priority, Course_Code, Sent_By" });
   }
 
   try {
     const response = await publishMessageWithReply(QUEUE_NAME, {
-      action: "addNotification",
-      payload: { Title, Message, Priority, Course_Code, Sent_By },
+      action: "addCourseNotification",
+      payload: { title, message, course_code, sender_id },
     });
 
     res.status(201).json({ success: true, message: "Notification added successfully", notification: response });
@@ -65,9 +74,38 @@ export const addNotification = async (req, res) => {
   }
 };
 
+export const addOneRecipientNotification = async (req, res) => {
+  const { 
+    course_code, 
+    sender_id, 
+    title, 
+    message,
+    recipient_id } = req.body;
+
+  console.log("body", req.body);
+
+  if (!title || !message || !course_code || !sender_id || !recipient_id) {
+    return res.status(400).json({ success: false, message: "All fields are required: Title, Message, Priority, Course_Code, Sent_By" });
+  }
+
+  try {
+    const response = await publishMessageWithReply(QUEUE_NAME, {
+      action: "addOneRecipientNotification",
+      payload: { title, message, course_code, sender_id, recipient_id },
+    });
+
+    res.status(201).json({ success: true, message: "Notification added successfully", notification: response });
+  } catch (error) {
+    console.error("AddNotification Error:", error);
+    res.status(500).json({ success: false, message: "Failed to add notification" });
+  }
+}
+
 // Get notifications sent by an admin (faculty members)
 export const getAdminNotifications = async (req, res) => {
   const { facultyId } = req.params;
+
+  console.log("params", req.params);
 
   if (!facultyId) {
     return res.status(400).json({ success: false, message: "Faculty ID is required" });
@@ -89,6 +127,8 @@ export const getAdminNotifications = async (req, res) => {
 // Get details of a specific notification sent by an admin
 export const getAdminNotificationDetails = async (req, res) => {
   const { notificationId } = req.params;
+
+  console.log("params", req.params);
 
   if (!notificationId) {
     return res.status(400).json({ success: false, message: "Notification ID is required" });

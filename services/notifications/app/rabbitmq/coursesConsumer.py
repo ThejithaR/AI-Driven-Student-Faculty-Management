@@ -1,14 +1,14 @@
 # notifications/app/rabbitmq/consumer.py
 import aio_pika
 import json
-from app.config import RABBITMQ_URL, NOTIFICATION_QUEUE
+from app.config import RABBITMQ_URL, COURSES_NOTIFICATIONS_QUEUE
 from app.controllers.notification_controller import handle_message
 
-async def consume():
+async def consume_courses_messages():
     connection = await aio_pika.connect_robust(RABBITMQ_URL)
     channel = await connection.channel()
-    queue = await channel.declare_queue(NOTIFICATION_QUEUE, durable=True)
-    print("✅ Notifications Consumer started...")
+    queue = await channel.declare_queue(COURSES_NOTIFICATIONS_QUEUE, durable=True)
+    print("✅ Courses Consumer started...")
 
     async with queue.iterator() as queue_iter:
         async for message in queue_iter:
