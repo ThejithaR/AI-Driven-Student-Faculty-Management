@@ -40,6 +40,8 @@ app.use("/api-gateway/notifications", notificationRouter);
 // Delegate WS handling to the route
 setupWebSocketHandler(wss);
 
+console.log("This is a test commit!");
+
 // app.listen(port, () => {
 //   console.log(`Server is running on port http://localhost:${port}/`);
 // });
