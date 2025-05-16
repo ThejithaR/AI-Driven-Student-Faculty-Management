@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState} from 'react';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
 const Button = ({ onClick, children, className = '', variant = 'primary' }) => {
@@ -19,7 +20,8 @@ const Button = ({ onClick, children, className = '', variant = 'primary' }) => {
   );
 };
 
-const CoursesPage = ({ userId = 'S001', role = 'student' }) => {
+const CoursesPage = ({ userId = 'F004', role = 'lecturer' }) => {
+  const navigate = useNavigate();
   const [courses, setCourses] = useState({ enrolled: [], eligible: [], all: [] });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -76,6 +78,7 @@ const CoursesPage = ({ userId = 'S001', role = 'student' }) => {
       } else if (action === 'edit') {
         // Navigate to edit page or open modal
         console.log('Edit course:', courseId);
+        navigate(`/edit-course/${courseId}`);
       }
 
       // Refresh courses after action
@@ -150,6 +153,17 @@ const CoursesPage = ({ userId = 'S001', role = 'student' }) => {
       <h1 className="text-4xl md:text-5xl font-bold text-center text-gray-100 mb-14">
         Course Management
       </h1>
+      <div className='flex justify-end items-end mb-8'>
+        {role === 'lecturer' && (
+            <button
+              onClick={() => navigate('/add-new-course')}
+              className="px-6 py-3 text-bold bg-green-600 text-white rounded-lg hover:bg-green-700 transition mb-8"
+            >
+              Create New Course
+            </button>
+          )
+        }
+      </div>
 
       {role === 'student' ? (
         <>

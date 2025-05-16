@@ -13,6 +13,8 @@ import ScheduleManager from "./pages/scheduleManager";
 import Notifications from "./pages/notifications";
 
 import Courses from "./pages/courses/CoursePage";
+import AddNewCourse from "./pages/courses/AddNewCourse";
+import EditCourse from "./pages/courses/EditCourse";
 
 //import CourseEnrollments from "./pages/courseEnrollments";
 import RegisterFace from "./pages/attendance/registerFace";
@@ -48,6 +50,9 @@ const App = () => {
         <Route path="/schedule-manager" element={<ScheduleManager />} />
         <Route path="/notifications" element={<Notifications />} />
         <Route path="/course-enrollments" element={<Courses />} />
+        <Route path="/add-new-course" element={<AddNewCourse />} />
+        <Route path="/edit-course/:courseId" element={<EditCourse />} />
+        {/* <Route path="/course-enrollments" element={<CourseEnrollments />} /> */}
       </Routes>
     </>
   );

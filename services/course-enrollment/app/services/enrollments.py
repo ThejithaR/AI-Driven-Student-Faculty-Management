@@ -1,4 +1,6 @@
 from app.supabase.supabaseClient import supabase
+from app.rabbitmq.rabbitMQ_service import publish_message_with_reply
+from app.config import COURSES_NOTIFICATIONS_QUEUE
 
 async def enroll(data: dict):
     reg_number = data.get("reg_number")
@@ -29,6 +31,43 @@ async def enroll(data: dict):
 
         # if response.error:
         #     raise Exception(f"Error enrolling in course: {response.status_code} - {response.error}")
+
+        # getting sender_id from faculty_member_profiles
+
+        sender_id = (
+            supabase
+            .from_("Assigned")
+            .select("reg_number")
+            .eq("course_code", course_id)
+            .execute()
+        ).data[0]["reg_number"]
+
+        # getting course name from courses
+        course_name = (
+            supabase
+            .from_("Courses")
+            .select("course_name")
+            .eq("course_code", course_id)
+            .single()
+            .execute()
+        ).data["course_name"]
+
+        # Publish a message to the RabbitMQ queue for further processing
+        response_from_notifications = await publish_message_with_reply(
+            COURSES_NOTIFICATIONS_QUEUE,
+            {
+                "action": "addOneRecipientNotification",
+                "payload": {
+                    "course_id": course_id,
+                    "recipient_id": reg_number,
+                    "sender_id": sender_id,
+                    "title": "New Course Enrollment",
+                    "message": f"You have been successfully enrolled in the course {course_id} - {course_name}.",
+                }
+            }
+        )
+
+        print(f"Response from notifications service: {response_from_notifications}")
 
         return {"message": "Successfully enrolled in the course."}
 
